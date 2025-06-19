@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Propeas - Admin</title>
+
+    <!-- ✅ Tailwind CDN for quick styling (temporary; ideally use postcss later) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: 'hsl(0, 0%, 0%)',
+                foreground: 'hsl(0, 0%, 100%)',
+              },
+              secondary: {
+                DEFAULT: 'hsl(0, 0%, 96%)',
+                foreground: 'hsl(0, 0%, 15%)',
+              },
+              background: 'hsl(0, 0%, 98%)',
+              foreground: 'hsl(0, 0%, 15%)',
+              card: {
+                DEFAULT: 'hsl(0, 0%, 100%)',
+                foreground: 'hsl(0, 0%, 15%)',
+              },
+              dark: {
+                primary: {
+                  DEFAULT: 'hsl(210, 90%, 60%)',
+                  foreground: 'hsl(0, 0%, 100%)',
+                },
+                secondary: {
+                  DEFAULT: 'hsl(0, 0%, 8%)',
+                  foreground: 'hsl(0, 0%, 95%)',
+                },
+                background: 'hsl(0, 0%, 4%)',
+                foreground: 'hsl(0, 0%, 95%)',
+                card: {
+                  DEFAULT: 'hsl(0, 0%, 12%)',
+                  foreground: 'hsl(0, 0%, 95%)',
+                },
+              },
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+          },
+        },
+        plugins: [],
+      };
+    </script>
+
+    <!-- ✅ Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-background text-foreground">
+    <div id="root"></div>
+
+    <!-- ✅ This is the correct Vite entry point -->
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

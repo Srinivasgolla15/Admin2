@@ -1,0 +1,28 @@
+import { Timestamp } from 'firebase/firestore';
+import { ReactNode, ReactElement } from 'react';
+
+// export type UserRole = 'Superadmin' | 'Admin' | 'Sales' | 'Operation' | 'Finance' ;
+export enum UserRole {
+  SuperAdmin = 'Superadmin',
+  Admin = 'Admin',
+  Sales = 'Sales',
+  Operations = 'Operations',
+  Finance = 'Finance',
+}
+
+export interface User {
+  id: string;
+  email: string;
+  phone: string;
+  name: string;
+  role: UserRole;
+  avatarUrl?: string;
+}
+
+export interface NavItem {
+  name: string;
+  path?: string;
+  icon: ReactElement<{ className?: string; size?: number }>;
+  subItems?: NavItem[];
+  roles?: UserRole[];
+}
