@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BackgroundImageUrl } from '../../constants'; 
+import { BackgroundImageUrl } from '../../Constants'; 
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom'; // Fixed import
-import UserIcon from '../../components/ui/Icons/userIcon';
+import UserIcon from '../../components/ui/Icons/UserIcon';
 import LockIcon from '../../components/ui/Icons/LockIcon';
 
 const LoginPage: React.FC = () => {

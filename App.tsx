@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './contexts/AuthContext';
 
 import LoginPage from './pages/auth/LoginPage';
-import ProtectedRoute from './components/auth/ProtectedRoute'; // ✅ capitalize and import correctly
+import ProtectedRoute from './components/auth/ProtectedRoute'; 
+import UnauthorizedPage from './pages/auth/UnauthorizedPage';
 import MainLayout from './components/layout/MainLayout';
 
 
@@ -46,10 +47,11 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
         <Routes>
-          {/* 🔓 Public route */}
+          {/*  Public route */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        {/* 🔐 Protected Routes */}
+        {/*  Protected Routes */}
           <Route element={<ProtectedRoute />}>
               <Route path="/" element={<MainLayout />}>
                   <Route element={<AnimatedOutlet />}>
