@@ -27,7 +27,7 @@ const iconSize = 18;
 const subIconSize = 16; 
 
 export const NAV_ITEMS: NavItem[] = [
-    { 
+  { 
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard size={iconSize} />,
@@ -44,7 +44,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon  : <PhoneCall size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
   },
-  {}
+  {
+    name: 'Employees',
+    path  : '/employees/AllEmployees',
+    icon  : <UsersRound size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin]
+  },
+   
 ]
 
 export const APP_NAME = 'Propeas';
