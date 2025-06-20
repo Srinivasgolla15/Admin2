@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Outlet, Navigate, useLocation, BrowserRouter } from 'react-router-dom';
+import { Routes, Route, Outlet, useLocation, BrowserRouter } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './contexts/AuthContext';
 import { UserRole } from './types'; // Ensure this import matches your types file
