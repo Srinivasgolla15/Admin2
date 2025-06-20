@@ -16,7 +16,10 @@ export interface User {
   phone: string;
   name: string;
   role: UserRole;
+  properties?: string[];
+  subscribedServices?: string[];    
   avatarUrl?: string;
+  createdAt?: Timestamp;
 }
 
 export interface NavItem {

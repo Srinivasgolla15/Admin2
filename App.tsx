@@ -10,6 +10,7 @@ import MainLayout from './components/layout/MainLayout';
 
 // Dashboard layout component
 import DashboardPage from './pages/DashboardPage'; // Uncomment if you have a layout component
+import AllClientsPage from './pages/clients/AllClientsPage';
 
 // Page wrapper with animation
 const AnimatedOutlet: React.FC = () => {
@@ -54,6 +55,8 @@ const App: React.FC = () => {
                   <Route element={<AnimatedOutlet />}>
                       <Route path="/" element={<DashboardPage />} />
                     {/* Add actual protected routes here */}
+
+                    <Route path="/AllClients" element={<AllClientsPage/>} />
                   </Route>
               </Route>
           </Route>
