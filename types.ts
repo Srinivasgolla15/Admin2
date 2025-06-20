@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
-import { ReactNode, ReactElement } from 'react';
+import { ReactElement } from 'react';
 
 // export type UserRole = 'Superadmin' | 'Admin' | 'Sales' | 'Operation' | 'Finance' ;
 export enum UserRole {
@@ -37,6 +37,7 @@ export interface NavItem {
   icon: ReactElement<{ className?: string; size?: number }>;
   subItems?: NavItem[];
   roles?: UserRole[];
+  onClick?: () => void;
 }
 
 

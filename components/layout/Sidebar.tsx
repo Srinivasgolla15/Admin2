@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { NAV_ITEMS, APP_NAME } from '../../constants';
+import { NAV_ITEMS, APP_NAME } from '../../Constants';
 import { NavItem, UserRole } from '../../types';
 
 interface SidebarProps {
@@ -59,29 +59,44 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
     if (!canView(item.roles)) return null;
 
     const isActive = isPathActive(item.path) || hasActiveChild(item.subItems);
-    const padding = level === 0 ? 'px-4' : `pl-${4 + level * 4} pr-4`;
+    const padding = 'px-4'; // Consistent padding for all items
+    
+    // Define common classes for consistent alignment
+    const iconContainerClass = 'w-5 h-5 flex-shrink-0 flex items-center justify-center';
+    const textContainerClass = 'leading-none text-left flex-1 min-w-0';
+    const chevronContainerClass = 'w-4 flex-shrink-0 flex justify-end';
 
-    const itemClasses = `flex items-center justify-between text-sm py-2.5 rounded-md transition group ${
+    const itemClasses = `flex items-center text-sm py-2.5 rounded-md transition group ${
       isActive
         ? 'bg-primary/20 text-white font-semibold'
         : 'hover:bg-slate-700 text-gray-300 hover:text-white'
-    } ${padding}`;
+    } ${padding} w-full text-left`;
 
     if (item.subItems && item.subItems.length > 0) {
       return (
         <div key={item.name}>
           <button
             onClick={() => toggleSection(item.name)}
-            className={itemClasses}
+            className={`${itemClasses} text-left`}
           >
-            <span className="flex items-center gap-2">
-              {item.icon}
-              {item.name}
-            </span>
-            {openSections[item.name] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <div className="flex items-center w-full">
+              <span className={iconContainerClass}>
+                {item.icon}
+              </span>
+              <span className={textContainerClass}>
+                {item.name}
+              </span>
+              <span className={chevronContainerClass}>
+                {openSections[item.name] ? (
+                  <ChevronDown size={16} className="flex-shrink-0" />
+                ) : (
+                  <ChevronRight size={16} className="flex-shrink-0" />
+                )}
+              </span>
+            </div>
           </button>
           {openSections[item.name] && (
-            <div className="ml-4 space-y-1 mt-1">
+            <div className="ml-8 space-y-1">
               {item.subItems.map((subItem) => renderItem(subItem, level + 1))}
             </div>
           )}
@@ -94,19 +109,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
         <NavLink
           key={item.path}
           to={item.path}
-          className={({ isActive: linkActive }) =>
-            `block ${itemClasses} ${
-              linkActive ? 'bg-primary/20 text-white' : ''
-            }`
-          }
+          className={itemClasses}
           onClick={() => {
             if (window.innerWidth < 768) toggleSidebar();
+            if (item.onClick) item.onClick();
           }}
         >
-          <span className="flex items-center gap-2">
-            {item.icon}
-            {item.name}
-          </span>
+          <div className="flex items-center w-full">
+            <span className={iconContainerClass}>
+              {item.icon}
+            </span>
+            <span className={textContainerClass}>
+              {item.name}
+            </span>
+            <span className={chevronContainerClass}></span>
+          </div>
         </NavLink>
       );
     }
