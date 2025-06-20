@@ -16,6 +16,9 @@ import AllClientsPage from './pages/clients/AllClientsPage';
 import CallbackRequestsPage from './pages/crm/CallbackRequests';
 import AllEmployeesPage from './pages/employees/AllEmployeesPage';
 
+//Properties
+import AllPropertiesPage from './pages/properties/AllProperties';
+
 // Page wrapper with animation
 const AnimatedOutlet: React.FC = () => {
   const location = useLocation();
@@ -76,6 +79,12 @@ const App: React.FC = () => {
                     <Route path="/employees/Allemployees" element={ 
                       <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
                         <AllEmployeesPage /> {/* Replace with actual component */}
+                      </ProtectedRoute>
+                    }/>
+
+                    <Route path="/properties/AllProperties" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
+                        <AllPropertiesPage /> {/* Replace with actual component */}
                       </ProtectedRoute>
                     }/>
 
