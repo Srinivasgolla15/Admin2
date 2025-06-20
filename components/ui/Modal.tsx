@@ -17,13 +17,13 @@ const Modal: React.FC<ModalProps> = ({
   title,
   children,
   size = 'md',
-  footer
+  footer,
 }) => {
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
   };
 
   return (
@@ -33,34 +33,39 @@ const Modal: React.FC<ModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6 sm:px-6"
           onClick={onClose}
         >
           <motion.div
-            initial={{ y: -50, opacity: 0 }}
+            initial={{ y: -30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 50, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className={`bg-white dark:bg-slate-800 rounded-xl shadow-lg w-full ${sizeClasses[size]} flex flex-col overflow-hidden`}
+            exit={{ y: 30, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            className={`w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-xl shadow-xl overflow-hidden flex flex-col`}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
             {title && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-600">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+                  className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
                   aria-label="Close modal"
                 >
                   <X size={20} />
                 </button>
               </div>
             )}
-            <div className="px-4 py-3 sm:px-6 overflow-y-auto max-h-[70vh]">
+
+            {/* Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto max-h-[70vh]">
               {children}
             </div>
+
+            {/* Footer */}
             {footer && (
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700">
+              <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                 {footer}
               </div>
             )}

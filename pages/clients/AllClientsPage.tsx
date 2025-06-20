@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { format } from 'date-fns';
-import { User } from '../../types';
+import { Client } from '../../types';
 import { Edit3, Info } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 
 const AllClientsPage: React.FC = () => {
-  const [clients, setClients] = useState<User[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClient, setSelectedClient] = useState<User | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const fetchClients = async () => {
@@ -40,7 +40,7 @@ const AllClientsPage: React.FC = () => {
     fetchClients();
   }, []);
 
-  const openInfoModal = (client: User) => {
+  const openInfoModal = (client: Client) => {
     setSelectedClient(client);
     setIsInfoOpen(true);
   };
