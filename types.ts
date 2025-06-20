@@ -10,7 +10,7 @@ export enum UserRole {
   Finance = 'Finance',
 }
 
-export interface User {
+export interface Client {
   id: string;
   email: string;
   phone: string;
@@ -22,6 +22,15 @@ export interface User {
   createdAt?: Timestamp;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  phone: string;
+  name: string;
+  role: UserRole;
+  createdAt?: Timestamp;
+}
+
 export interface NavItem {
   name: string;
   path?: string;
@@ -29,3 +38,15 @@ export interface NavItem {
   subItems?: NavItem[];
   roles?: UserRole[];
 }
+
+
+export interface CallbackRequest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  serviceNeeded: string;
+  message: string;
+  timestamp: any; // Firestore Timestamp
+}
+

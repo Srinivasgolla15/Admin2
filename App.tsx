@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Outlet, Navigate, useLocation, BrowserRouter } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from './contexts/AuthContext';
+import { UserRole } from './types'; // Ensure this import matches your types file
 
 import LoginPage from './pages/auth/LoginPage';
 import ProtectedRoute from './components/auth/ProtectedRoute'; 
@@ -12,6 +13,7 @@ import MainLayout from './components/layout/MainLayout';
 // Dashboard layout component
 import DashboardPage from './pages/DashboardPage'; // Uncomment if you have a layout component
 import AllClientsPage from './pages/clients/AllClientsPage';
+import CallbackRequestsPage from './pages/crm/CallbackRequests';
 
 // Page wrapper with animation
 const AnimatedOutlet: React.FC = () => {
@@ -58,7 +60,20 @@ const App: React.FC = () => {
                       <Route path="/" element={<DashboardPage />} />
                     {/* Add actual protected routes here */}
 
-                    <Route path="/AllClients" element={<AllClientsPage/>} />
+                    <Route path="/clients/AllClients" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
+                        <AllClientsPage />
+                      </ProtectedRoute>
+                    }/>
+
+                    <Route path="/crm/CallbackRequests" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
+                        <CallbackRequestsPage />
+                      </ProtectedRoute>
+                    }/>
+
+                    {/* Add more routes as needed */}
+                    
                   </Route>
               </Route>
           </Route>

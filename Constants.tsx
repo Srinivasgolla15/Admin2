@@ -33,11 +33,18 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <LayoutDashboard size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales, UserRole.Operations, UserRole.Finance] 
   },
-  {    name: 'Clients',
-    path:'/AllClients',
+  { name: 'Clients',
+    path:'/clients/AllClients',
     icon : <Users size={iconSize} />,
-    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales, UserRole.Operations, UserRole.Finance],
-  }
+    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales],
+  },
+  {
+    name: 'Callback Requests',
+    path: '/crm/CallbackRequests',
+    icon  : <PhoneCall size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
+  },
+  {}
 ]
 
 export const APP_NAME = 'Propeas';
