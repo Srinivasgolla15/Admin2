@@ -14,6 +14,7 @@ import MainLayout from './components/layout/MainLayout';
 import DashboardPage from './pages/DashboardPage'; // Uncomment if you have a layout component
 import AllClientsPage from './pages/clients/AllClientsPage';
 import CallbackRequestsPage from './pages/crm/CallbackRequests';
+import AllEmployeesPage from './pages/employees/AllEmployeesPage';
 
 // Page wrapper with animation
 const AnimatedOutlet: React.FC = () => {
@@ -69,6 +70,12 @@ const App: React.FC = () => {
                     <Route path="/crm/CallbackRequests" element={ 
                       <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
                         <CallbackRequestsPage />
+                      </ProtectedRoute>
+                    }/>
+
+                    <Route path="/employees/Allemployees" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
+                        <AllEmployeesPage /> {/* Replace with actual component */}
                       </ProtectedRoute>
                     }/>
 

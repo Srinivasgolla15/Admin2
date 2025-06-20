@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, PhoneCall } from 'lucide-react';
+import { LayoutDashboard, Users, PhoneCall,UsersRound } from 'lucide-react';
 import { UserRole, NavItem } from './types';  
 
 export const BackgroundImageUrl = "https://picsum.photos/seed/propeasbg/1920/1080";
@@ -13,7 +13,7 @@ export const BackgroundImageStyles = {
 const iconSize = 18;
 
 export const NAV_ITEMS: NavItem[] = [
-    { 
+  { 
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard size={iconSize} />,
@@ -29,7 +29,14 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/crm/CallbackRequests',
     icon  : <PhoneCall size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
-  }
+  },
+  {
+    name: 'Employees',
+    path  : '/employees/AllEmployees',
+    icon  : <UsersRound size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin]
+  },
+   
 ]
 
 export const APP_NAME = 'Propeas';

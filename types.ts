@@ -8,6 +8,7 @@ export enum UserRole {
   Sales = 'Sales',
   Operations = 'Operations',
   Finance = 'Finance',
+  Employee = 'Employee',
 }
 
 export interface Client {
@@ -19,6 +20,7 @@ export interface Client {
   properties?: string[];
   subscribedServices?: string[];    
   avatarUrl?: string;
+  subscriptionStatus: 'Active' | 'Pending' | 'Inactive' | 'Blocked' | 'Cancelled';
   createdAt?: Timestamp;
 }
 
@@ -49,5 +51,18 @@ export interface CallbackRequest {
   serviceNeeded: string;
   message: string;
   timestamp: any; // Firestore Timestamp
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  assignedto?: string; // Client ID or Property ID
+  avatarUrl?: string;
+  department?: string;
+  employmentStatus?: 'Active' | 'Inactive' | 'On Leave';
+  joinedOn?: string;
+  phone?: string;
 }
 
