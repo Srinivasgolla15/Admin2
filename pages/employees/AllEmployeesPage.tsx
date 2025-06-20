@@ -38,7 +38,6 @@ const AllEmployeesPage: React.FC = () => {
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Department</th>
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Joined On</th>
@@ -61,7 +60,6 @@ const AllEmployeesPage: React.FC = () => {
                   </td>
                   <td className="px-4 py-3">{emp.email}</td>
                   <td className="px-4 py-3">{emp.role}</td>
-                  <td className="px-4 py-3">{emp.department ?? '-'}</td>
                   <td className="px-4 py-3">{emp.phone ?? '-'}</td>
                   <td className="px-4 py-3">
                     <span
