@@ -33,6 +33,11 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <LayoutDashboard size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales, UserRole.Operations, UserRole.Finance] 
   },
+  {    name: 'Clients',
+    path:'/AllClients',
+    icon : <Users size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales, UserRole.Operations, UserRole.Finance],
+  }
 ]
 
 export const APP_NAME = 'Propeas';
