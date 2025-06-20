@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
 
     const itemClasses = `flex items-center justify-between text-sm py-2.5 rounded-md transition group ${
       isActive
-        ? 'bg-primary/10 text-primary dark:text-sky-400 font-semibold'
+        ? 'bg-primary/20 text-white font-semibold'
         : 'hover:bg-slate-700 text-gray-300 hover:text-white'
     } ${padding}`;
 
@@ -96,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
           to={item.path}
           className={({ isActive: linkActive }) =>
             `block ${itemClasses} ${
-              linkActive ? 'bg-primary/10 text-primary' : ''
+              linkActive ? 'bg-primary/20 text-white' : ''
             }`
           }
           onClick={() => {
