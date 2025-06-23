@@ -13,7 +13,6 @@ import MainLayout from './components/layout/MainLayout';
 // Dashboard layout component
 import DashboardPage from './pages/DashboardPage'; // Uncomment if you have a layout component
 import AllClientsPage from './pages/clients/AllClientsPage';
-import CallbackRequestsPage from './pages/crm/CallbackRequests';
 import AllEmployeesPage from './pages/employees/AllEmployeesPage';
 
 //Properties
@@ -21,6 +20,10 @@ import AllPropertiesPage from './pages/properties/AllProperties';
 
 //finance
 import PaymentsPage from './pages/finance/PaymentsPage'; // Replace with actual component
+
+//CRM
+import CallbackRequestsPage from './pages/crm/CallbackRequests';
+import ServiceEnquiriesPage from './pages/crm/ServiceEnquiriesPage';
 
 // Page wrapper with animation
 const AnimatedOutlet: React.FC = () => {
@@ -94,6 +97,12 @@ const App: React.FC = () => {
                     <Route path="/finance/Payments" element={ 
                       <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
                         <PaymentsPage /> {/* Replace with actual component */}
+                      </ProtectedRoute>
+                    }/>
+
+                    <Route path="/crm/ServiceEnquiries" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
+                        <ServiceEnquiriesPage /> {/* Replace with actual component */}
                       </ProtectedRoute>
                     }/>
 
