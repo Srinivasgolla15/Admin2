@@ -29,23 +29,25 @@ const PaginatedTable = <T,>({
         <table className="min-w-full bg-white dark:bg-slate-800 text-sm">
           <thead className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
             <tr>
-              {columns.map((col) => (
-                <th key={col.key} className="px-4 py-2 text-left">
-                  {col.label}
+                {columns.map((col) => (
+                <th key={col.key} className="px-6 py-3 text-left font-semibold tracking-wide">
+                    {col.label}
                 </th>
-              ))}
+                ))}
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody>
             {paginatedData.map((item, idx) => (
-              <tr
+                <tr
                 key={(item as any).id || idx}
-                className="border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-              >
+                className={`border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition duration-150 ${
+                    idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-700'
+                }`}
+                >
                 {renderRow(item)}
-              </tr>
+                </tr>
             ))}
-          </tbody>
+            </tbody>
         </table>
       </div>
 
