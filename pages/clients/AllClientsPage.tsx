@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Client } from '../../types';
 import { Edit3, Info } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
+import PaginatedTable from '../../components/ui/PaginatedTable';
 
 const AllClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -15,6 +16,8 @@ const AllClientsPage: React.FC = () => {
   const fetchClients = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'clients'));
+      console.log(`📦 Read from collection: 'clients' | Total documents fetched: ${snapshot.size}`);
+
       const data = snapshot.docs.map(doc => {
         const raw = doc.data();
         return {
@@ -26,6 +29,7 @@ const AllClientsPage: React.FC = () => {
           subscribedServices: raw.subscribedServices || [],
           properties: raw.properties || [],
           createdAt: raw.createdAt,
+          subscriptionStatus: raw.subscriptionStatus || 'inactive', // Add default or fetched value
         };
       });
       setClients(data);
@@ -51,71 +55,57 @@ const AllClientsPage: React.FC = () => {
       {loading ? (
         <p>Loading clients...</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg shadow">
-          <table className="min-w-full bg-white dark:bg-slate-800 text-sm">
-            <thead className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-              <tr>
-                <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Email</th>
-                <th className="px-4 py-2 text-left">Phone</th>
-                <th className="px-4 py-2 text-left">Subscribed Services</th>
-                <th className="px-4 py-2 text-left">Properties</th>
-                <th className="px-4 py-2 text-left">Created At</th>
-                <th className="px-4 py-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map(client => (
-                <tr key={client.id} className="border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">
-                  <td className="px-4 py-2">{client.name}</td>
-                  <td className="px-4 py-2">{client.email}</td>
-                  <td className="px-4 py-2">{client.phone || '—'}</td>
-                  <td className="px-4 py-2">
-                    {Array.isArray(client.subscribedServices) && client.subscribedServices.length > 0
-                      ? client.subscribedServices.join(', ')
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-2">
-                    {Array.isArray(client.properties) && client.properties.length > 0
-                      ? client.properties.join(', ')
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-2">
-                    {client.createdAt
-                      ? format(
-                          (client.createdAt && typeof client.createdAt.toDate === 'function')
-                            ? client.createdAt.toDate()
-                            : new Date(
-                                typeof client.createdAt === 'string'
-                                  ? client.createdAt
-                                  : ''
-                              ),
-                          'dd-MM-yyyy HH:mm'
-                        )
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-2 space-x-2 flex">
-                    <button
-                      title="Edit"
-                      className="text-blue-600 hover:text-blue-800 transition"
-                      onClick={() => console.log('Edit', client.id)}
-                    >
-                      <Edit3 size={18} />
-                    </button>
-                    <button
-                      title="View Info"
-                      className="text-green-600 hover:text-gray-800 transition"
-                      onClick={() => openInfoModal(client)}
-                    >
-                      <Info size={18} />
-                    </button>
-                  </td>
-
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PaginatedTable
+          columns={[
+            { key: 'name', label: 'Name' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Phone' },
+            { key: 'services', label: 'Subscribed Services' },
+            { key: 'properties', label: 'Properties' },
+            { key: 'createdAt', label: 'Created At' },
+            { key: 'actions', label: 'Actions' },
+          ]}
+          data={clients}
+          rowsPerPage={5}
+          renderRow={(client) => (
+            <>
+              <td className="px-4 py-2">{client.name}</td>
+              <td className="px-4 py-2">{client.email}</td>
+              <td className="px-4 py-2">{client.phone || '—'}</td>
+              <td className="px-4 py-2">
+                {client.subscribedServices?.length
+                  ? client.subscribedServices.join(', ')
+                  : '—'}
+              </td>
+              <td className="px-4 py-2">
+                {client.properties?.length
+                  ? client.properties.join(', ')
+                  : '—'}
+              </td>
+              <td className="px-4 py-2">
+                {client.createdAt?.toDate?.()
+                  ? format(client.createdAt.toDate(), 'dd-MM-yyyy HH:mm')
+                  : '—'}
+              </td>
+              <td className="px-4 py-2 space-x-2 flex">
+                <button
+                  title="Edit"
+                  className="text-blue-600 hover:text-blue-800 transition"
+                  onClick={() => console.log('Edit', client.id)}
+                >
+                  <Edit3 size={18} />
+                </button>
+                <button
+                  title="View Info"
+                  className="text-green-600 hover:text-gray-800 transition"
+                  onClick={() => openInfoModal(client)}
+                >
+                  <Info size={18} />
+                </button>
+              </td>
+            </>
+          )}
+        />
       )}
 
       {/* Modal for Info View */}
@@ -133,7 +123,10 @@ const AllClientsPage: React.FC = () => {
             <p><strong>Role:</strong> {selectedClient.role}</p>
             <p><strong>Subscribed Services:</strong> {selectedClient.subscribedServices?.join(', ') || '—'}</p>
             <p><strong>Properties:</strong> {selectedClient.properties?.join(', ') || '—'}</p>
-            <p><strong>Created At:</strong> {selectedClient.createdAt?.toDate?.() ? format(selectedClient.createdAt.toDate(), 'dd-MM-yyyy HH:mm') : '—'}</p>
+            <p><strong>Created At:</strong> {selectedClient.createdAt?.toDate?.()
+              ? format(selectedClient.createdAt.toDate(), 'dd-MM-yyyy HH:mm')
+              : '—'}
+            </p>
           </div>
         ) : (
           <p>No client selected.</p>

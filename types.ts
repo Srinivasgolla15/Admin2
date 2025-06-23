@@ -66,3 +66,95 @@ export interface Employee {
   phone?: string;
 }
 
+// Property types and statuses
+// These types are used to define the properties in the real estate management system
+export type PropertyType = 'ApartmentProperty' | 'Villa' | 'IndependentHouse' | 'CommercialSpace';
+export type PropertyStatus = 'verified' | 'pending' | 'rejected';
+export type ServiceType = 'Apartment Management' | 'buy' | 'rent';
+export type BuySellType = 'Buy' | 'Sell';
+
+export interface Tenant {
+  name: string;
+  email: string;
+  phone: string;
+  moveInDate: Date; // from Firestore Timestamp
+  timestamp: Date;
+  userId: string;
+}
+
+export interface DetailedAddress {
+  apartmentName?: string;
+  doorNumber?: string;
+  floor?: string;
+  street?: string;
+  locationLink?: string;
+  name?: string;
+  phone?: string;
+  pincode?: string;
+}
+
+export interface Property {
+  id: string;
+
+  // General details
+  name: string;
+  phone: string;
+  userId: string;
+  submittedBy: string;
+  status: PropertyStatus;
+  timestamp: Date;
+
+  // Type and service
+  propertyType: PropertyType;
+  service: ServiceType;
+
+  // Dimensions and location
+  address?: string;
+  city?: string;
+  location?: string;
+  floor?: string;
+  landmark?: string;
+  street?: string;
+  pincode?: string;
+  areaSize?: number;
+  squareFeet?: number;
+
+  // Detailed nested address (from apartment form)
+  detailedAddress?: DetailedAddress;
+
+  // Sale / Rent Specific
+  price?: number | null;
+  rentPrice?: number | null;
+  rentType?: string | null;
+  buySellType?: BuySellType | null;
+  sNo?: string;
+
+  // Photos
+  photos?: string[];
+
+  // Assigned employee
+  assignedEmployee?: string; // email
+
+  // Subscription link (if any)
+  subscriptionId?: string;
+
+  // Tenants list (if it's a rented property)
+  tenants?: Tenant[];
+}
+
+// payments 
+export interface Payment {
+  id: string;
+  endDate: Date;
+  numberOfProperties: number;
+  propertyIds: string[];
+  serviceType: string;
+  startDate: Date;
+  status: 'pending' | 'verified' | 'rejected'; // expand as needed
+  submittedBy: string;
+  subscribedAt: Date;
+  transactionScreenshot: string;
+  updatedAt: Date;
+}
+
+
