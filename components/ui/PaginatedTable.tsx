@@ -30,23 +30,26 @@ const PaginatedTable = <T,>({
           <thead className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
             <tr>
                 {columns.map((col) => (
-                <th key={col.key} className="px-6 py-3 text-left font-semibold tracking-wide">
-                    {col.label}
+                <th 
+                  key={col.key} 
+                  className="px-6 py-3 text-left font-semibold tracking-wide whitespace-nowrap"
+                >
+                  {col.label}
                 </th>
-                ))}
+              ))}
             </tr>
             </thead>
             <tbody>
-            {paginatedData.map((item, idx) => (
+              {paginatedData.map((item, idx) => (
                 <tr
-                key={(item as any).id || idx}
-                className={`border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition duration-150 ${
+                  key={(item as any).id || idx}
+                  className={`border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition duration-150 ${
                     idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-700'
-                }`}
+                  }`}
                 >
-                {renderRow(item)}
+                  {renderRow(item)}
                 </tr>
-            ))}
+              ))}
             </tbody>
         </table>
       </div>

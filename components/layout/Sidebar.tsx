@@ -12,7 +12,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const canView = (roles?: UserRole[]): boolean => {
@@ -59,9 +59,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
     if (!canView(item.roles)) return null;
 
     const isActive = isPathActive(item.path) || hasActiveChild(item.subItems);
-    const padding = 'px-4'; // Consistent padding for all items
+    const padding = 'px-4';
     
-    // Define common classes for consistent alignment
     const iconContainerClass = 'w-5 h-5 flex-shrink-0 flex items-center justify-center';
     const textContainerClass = 'leading-none text-left flex-1 min-w-0';
     const chevronContainerClass = 'w-4 flex-shrink-0 flex justify-end';
@@ -160,7 +159,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, toggleSidebar }) => {
             <X size={20} />
           </button>
         </div>
-        <nav className="p-4 space-y-1">{NAV_ITEMS.map(renderItem)}</nav>
+        <nav className="p-4 space-y-1 flex-1 flex flex-col h-[calc(100%-4rem)]">
+          <div className="flex-1 overflow-y-auto">
+            {NAV_ITEMS.map(renderItem)}
+          </div>
+          <div className="pt-2 border-t border-slate-700 mt-4">
+            {/* Logout Button */}
+            <button
+              onClick={async () => {
+                try {
+                  await logout();
+                  window.location.href = '/login';
+                } catch (error) {
+                  console.error('Failed to log out', error);
+                }
+              }}
+              className="flex items-center w-full text-left px-4 py-2.5 rounded-md text-sm text-gray-300 hover:bg-slate-700 hover:text-white transition-colors group"
+            >
+              <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out">
+                  <path d="m16 17 5-5-5-5"></path>
+                  <path d="M21 12H9"></path>
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                </svg>
+              </span>
+              <span>Logout</span>
+            </button>
+          </div>
+        </nav>
       </aside>
     </>
   );
