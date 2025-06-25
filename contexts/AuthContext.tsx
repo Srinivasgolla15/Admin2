@@ -35,7 +35,7 @@ const loadUserRole = async (firebaseUser: FirebaseUser): Promise<User> => {
     name: firebaseUser.displayName ?? '',
     phone: firebaseUser.phoneNumber ?? '',
     role: data?.role ?? 'client',
-    avatarUrl: firebaseUser.photoURL ?? undefined,
+    // avatarUrl: firebaseUser.photoURL ?? undefined,
   };
 };
 

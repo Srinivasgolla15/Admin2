@@ -19,7 +19,7 @@ export interface Client {
   role: UserRole;
   properties?: string[];
   subscribedServices?: string[];    
-  avatarUrl?: string;
+  profilePhotoUrl?: string;
   subscriptionStatus: 'Active' | 'Pending' | 'Inactive' | 'Blocked' | 'Cancelled';
   createdAt?: Timestamp;
 }
@@ -103,6 +103,8 @@ export interface Property {
   submittedBy: string;
   status: PropertyStatus;
   timestamp: Date;
+  locationLink?: string; // Google Maps link or similar
+  imageUrls?: string[]; // URLs of images related to the property
 
   // Type and service
   propertyType: PropertyType;
