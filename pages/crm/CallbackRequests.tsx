@@ -61,20 +61,42 @@ const CallbackRequestsPage: React.FC = () => {
           rowsPerPage={5}
           renderRow={(req) => (
             <>
-              <td className="px-4 py-3 text-slate-800 dark:text-white">{req.name}</td>
-              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                <Mail size={14} /> {req.email}
+              <td className="px-4 py-3">
+                <div className="flex items-center">
+                  <span className="text-slate-800 dark:text-white">{req.name}</span>
+                </div>
               </td>
-              <td className="px-4 py-3 text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                <Phone size={14} /> {req.phone}
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <Mail size={14} />
+                  <span>{req.email}</span>
+                </div>
               </td>
-              <td className="px-4 py-3 text-blue-600 dark:text-blue-400 font-medium">{req.serviceNeeded}</td>
-              <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{req.message}</td>
-              <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-sm flex items-center gap-1">
-                <CalendarDays size={14} />
-                {req.timestamp?.toDate
-                  ? format(req.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')
-                  : '—'}
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <Phone size={14} />
+                  <span>{req.phone}</span>
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                  {req.serviceNeeded || '—'}
+                </span>
+              </td>
+              <td className="px-4 py-3">
+                <span className="text-slate-700 dark:text-slate-200 line-clamp-2">
+                  {req.message || '—'}
+                </span>
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm w-full">
+                  <CalendarDays size={14} className="flex-shrink-0 mr-2" />
+                  <span className="inline-block min-w-[150px]">
+                    {req.timestamp?.toDate
+                      ? format(req.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')
+                      : '—'}
+                  </span>
+                </div>
               </td>
             </>
           )}
