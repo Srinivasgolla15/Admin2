@@ -66,9 +66,6 @@ const LoginPage: React.FC = () => {
         <div className="relative z-10">
           <p className="text-blue-100">Schedule visits in just a few clicks</p>
         </div>
-        <div className="relative z-10 text-sm text-blue-100 opacity-80">
-          {new Date().getFullYear()} Realnest. All rights reserved.
-        </div>
       </div>
 
       {/* Right Side - Login Form */}
