@@ -3,6 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, LogIn, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { doc, updateDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { db, auth } from '../../services/firebase';
+import { PlatformAuditLog } from '../../utils/auditLogger';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,7 +14,6 @@ const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const { login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -24,14 +26,88 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     try {
+      console.log('Attempting login:', { email });
+
+      // Perform login
       const { success, errorMsg } = await login(email, password);
-      if (success) {
-        navigate(from, { replace: true });
-      } else {
+
+      if (!success) {
+        console.error('Login failed:', errorMsg);
         setError(errorMsg || 'Login failed. Please try again.');
+        setLoading(false);
+        return;
       }
+
+      // Wait for auth state to update
+      const user = await new Promise((resolve, reject) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          unsubscribe();
+          if (user) {
+            console.log('Auth state updated:', { uid: user.uid, email: user.email });
+            resolve(user);
+          } else {
+            console.error('No user after login');
+            reject(new Error('Authentication state not updated'));
+          }
+        }, reject);
+      });
+
+      const userId = user.uid;
+      const userRef = doc(db, 'users', userId);
+
+      // Check if user document exists in Firestore
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        console.error('User document not found in Firestore:', userId);
+        setError('User data not found. Please contact support.');
+        setLoading(false);
+        return;
+      }
+
+      const userData = userSnap.data();
+      const now = Timestamp.now();
+
+      // Update lastLogin in Firestore
+      try {
+        console.log('Updating lastLogin for user:', userId);
+        await updateDoc(userRef, { lastLogin: now });
+      } catch (err) {
+        console.error('Error updating lastLogin:', err);
+        // Continue despite Firestore error to avoid blocking login
+      }
+
+      // Log audit
+      try {
+        console.log('Logging audit for login:', { userId, email });
+        await PlatformAuditLog({
+          actionType: 'USER_LOGIN',
+          actor: {
+            id: userId,
+            name: userData?.name || '',
+            email: userData?.email || '',
+            role: userData?.role || '',
+            phone: userData?.phone || '',
+          },
+          targetEntityId: userId,
+          targetEntityType: 'user',
+          targetEntityDescription: `${userData?.name || userData?.email || userId}`,
+          actionDescription: `User ${userData?.name || userData?.email || userId} logged in`,
+          timestamp: now,
+          details: {
+            lastLogin: now,
+          },
+        });
+      } catch (err) {
+        console.error('Error logging audit:', err);
+        // Continue despite audit error
+      }
+
+      console.log('Navigating to:', from);
+      navigate(from, { replace: true });
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[LoginPage] Login error:', err);
+      setError(errorMessage.includes('auth/') ? 'Invalid email or password' : 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -85,7 +161,7 @@ const LoginPage: React.FC = () => {
             Welcome back
           </h1>
           
-          {/* Sign in text - moved above email */}
+          {/* Sign in text */}
           <p className="text-gray-600 dark:text-gray-400 text-center mb-8">
             Sign in to your account
           </p>
