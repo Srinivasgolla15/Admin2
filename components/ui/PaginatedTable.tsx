@@ -1,27 +1,33 @@
-// src/components/ui/PaginatedTable.tsx
-import React, { useState } from 'react';
+import React from 'react';
 
 type PaginatedTableProps<T> = {
   columns: { key: string; label: string }[];
   data: T[];
-  rowsPerPage?: number;
+  currentPage?: number;
+  onPageChange?: (newPage: number) => void;
+  hasMore?: boolean;
   renderRow: (item: T) => React.ReactNode;
 };
 
 const PaginatedTable = <T,>({
   columns,
   data,
-  rowsPerPage = 10,
+  currentPage = 0,
+  onPageChange,
+  hasMore = true,
   renderRow,
 }: PaginatedTableProps<T>) => {
-  const [currentPage, setCurrentPage] = useState(0);
+  const handlePrev = () => {
+    if (currentPage > 0) {
+      onPageChange?.(currentPage - 1);
+    }
+  };
 
-  const totalPages = Math.ceil(data.length / rowsPerPage);
-  const startIdx = currentPage * rowsPerPage;
-  const paginatedData = data.slice(startIdx, startIdx + rowsPerPage);
-
-  const handlePrev = () => setCurrentPage((prev) => Math.max(prev - 1, 0));
-  const handleNext = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
+  const handleNext = () => {
+    if (hasMore) {
+      onPageChange?.(currentPage + 1);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -29,36 +35,34 @@ const PaginatedTable = <T,>({
         <table className="min-w-full bg-white dark:bg-slate-800 text-sm">
           <thead className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
             <tr>
-                {columns.map((col) => (
-                <th 
-                  key={col.key} 
+              {columns.map((col) => (
+                <th
+                  key={col.key}
                   className="px-6 py-3 text-left font-semibold tracking-wide whitespace-nowrap"
                 >
                   {col.label}
                 </th>
               ))}
             </tr>
-            </thead>
-            <tbody>
-              {paginatedData.map((item, idx) => (
-                <tr
-                  key={(item as any).id || idx}
-                  className={`border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition duration-150 ${
-                    idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-700'
-                  }`}
-                >
-                  {renderRow(item)}
-                </tr>
-              ))}
-            </tbody>
+          </thead>
+          <tbody>
+            {data.map((item, idx) => (
+              <tr
+                key={(item as any).id || idx}
+                className={`border-b dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition duration-150 ${
+                  idx % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-700'
+                }`}
+              >
+                {renderRow(item)}
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
 
       {/* Pagination Controls */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-slate-700 dark:text-slate-300">
-          Page {currentPage + 1} of {totalPages}
-        </span>
+        <span className="text-slate-700 dark:text-slate-300">Page {currentPage + 1}</span>
         <div className="space-x-2">
           <button
             onClick={handlePrev}
@@ -69,7 +73,7 @@ const PaginatedTable = <T,>({
           </button>
           <button
             onClick={handleNext}
-            disabled={currentPage === totalPages - 1}
+            disabled={!hasMore}
             className="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded disabled:opacity-50"
           >
             Next

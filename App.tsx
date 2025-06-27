@@ -14,6 +14,7 @@ import MainLayout from './components/layout/MainLayout';
 import DashboardPage from './pages/DashboardPage'; // Uncomment if you have a layout component
 import AllClientsPage from './pages/clients/AllClientsPage';
 import AllEmployeesPage from './pages/employees/AllEmployeesPage';
+import PlatformUserManagementPage from './pages/users/PlatformUserManagementPage';
 
 //Properties
 import AllPropertiesPage from './pages/properties/AllProperties';
@@ -24,6 +25,9 @@ import PaymentsPage from './pages/finance/PaymentsPage'; // Replace with actual 
 //CRM
 import CallbackRequestsPage from './pages/crm/CallbackRequests';
 import ServiceEnquiriesPage from './pages/crm/ServiceEnquiriesPage';
+
+//LogsHistory
+ import CombinedHistoryPage from './pages/history/CombinedHistoryPage'; // Uncomment if you have
 
 // Page wrapper with animation
 const AnimatedOutlet: React.FC = () => {
@@ -76,6 +80,12 @@ const App: React.FC = () => {
                       </ProtectedRoute>
                     }/>
 
+                    <Route path="/users/PlatformUserManagement" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
+                        <PlatformUserManagementPage />
+                      </ProtectedRoute>
+                    }/>
+
                     <Route path="/crm/CallbackRequests" element={ 
                       <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
                         <CallbackRequestsPage />
@@ -103,6 +113,12 @@ const App: React.FC = () => {
                     <Route path="/crm/ServiceEnquiries" element={ 
                       <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
                         <ServiceEnquiriesPage /> {/* Replace with actual component */}
+                      </ProtectedRoute>
+                    }/>
+
+                    <Route path="/history/CombinedHistory" element={ 
+                      <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
+                        <CombinedHistoryPage /> {/* Replace with actual component */}
                       </ProtectedRoute>
                     }/>
 

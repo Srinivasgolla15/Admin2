@@ -3,7 +3,7 @@ import { ReactElement } from 'react';
 
 // export type UserRole = 'Superadmin' | 'Admin' | 'Sales' | 'Operation' | 'Finance' ;
 export enum UserRole {
-  SuperAdmin = 'Superadmin',
+  SuperAdmin = 'Super Admin',
   Admin = 'Admin',
   Sales = 'Sales',
   Operations = 'Operations',
@@ -30,6 +30,8 @@ export interface User {
   phone: string;
   name: string;
   role: UserRole;
+  password?: string; // Optional, used for login
+  lastLogin?: Timestamp;
   createdAt?: Timestamp;
 }
 
