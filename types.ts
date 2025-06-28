@@ -150,6 +150,7 @@ export interface Property {
 export interface Payment {
   id: string;
   endDate: Date;
+  amount: number;
   numberOfProperties: number;
   propertyIds: string[];
   serviceType: string;

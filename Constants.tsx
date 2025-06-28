@@ -58,6 +58,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <MailWarning size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
   },
+  {
+    name:'Log History',
+    path:'/history/CombinedHistory',
+    icon:<History size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin]
+  },
  
 ]
 
