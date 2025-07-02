@@ -42,6 +42,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
   },
   {
+    name: 'Buy/Sell Requests',
+    path  : '/crm/BuySellRequests',
+    icon  : <HeartHandshake size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
+  },
+  {
     name: 'Employees',
     path  : '/employees/AllEmployees',
     icon  : <UsersRound size={iconSize} />,
