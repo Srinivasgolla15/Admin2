@@ -36,6 +36,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
   },
   {
+    name  : 'Leads',
+    path  : '/crm/Leads',
+    icon  : <UsersRound size={iconSize} />,   
+    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]
+  },
+  {
     name: 'Employees',
     path  : '/employees/AllEmployees',
     icon  : <UsersRound size={iconSize} />,

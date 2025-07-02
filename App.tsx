@@ -19,6 +19,7 @@ const PaymentsPage = lazy(() => import('./pages/finance/PaymentsPage')); // Lazy
 const CallbackRequestsPage = lazy(() => import('./pages/crm/CallbackRequests')); // Lazy-loaded
 const ServiceEnquiriesPage = lazy(() => import('./pages/crm/ServiceEnquiriesPage')); // Lazy-loaded
 const CombinedHistoryPage = lazy(() => import('./pages/history/CombinedHistoryPage')); // Lazy-loaded
+const LeadsPage = lazy(() => import('./pages/crm/leadsPage')); // Lazy-loaded
 
 // Page wrapper with animation (remains the same)
 const AnimatedOutlet: React.FC = () => {
@@ -76,6 +77,14 @@ const App: React.FC = () => {
                   element={
                     <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
                       <AllClientsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/crm/Leads"
+                  element={
+                    <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin, UserRole.Sales]}>
+                      <LeadsPage />
                     </ProtectedRoute>
                   }
                 />
