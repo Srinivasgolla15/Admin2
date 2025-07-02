@@ -64,6 +64,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon:<History size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin]
   },
+  {
+    name:'User Management',
+    path:'/users/PlatformUserManagement',
+    icon:<UserCog size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin]
+  }
  
 ]
 

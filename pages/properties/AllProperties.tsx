@@ -99,6 +99,8 @@ const AllPropertiesPage: React.FC = () => {
         setLastVisible(newLastVisible || null);
         setPrevCursors([]);
       }
+
+      
     } catch (error) {
       console.error('[DEBUG] AllPropertiesPage: Error fetching properties:', error);
       setError('Failed to fetch properties. Please try again.');
