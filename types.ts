@@ -49,9 +49,12 @@ export interface CallbackRequest {
   id: string;
   name: string;
   email: string;
+  updatedAt: Timestamp;
+  updatedBy: string; // User ID of the person who updated the request
   phone: string;
   serviceNeeded: string;
   message: string;
+  status:string;
   timestamp: any; // Firestore Timestamp
 }
 
@@ -150,6 +153,7 @@ export interface Property {
 export interface Payment {
   id: string;
   endDate: Date;
+  amount: number;
   numberOfProperties: number;
   propertyIds: string[];
   serviceType: string;

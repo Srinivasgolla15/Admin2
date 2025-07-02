@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, limit, startAfter, DocumentSnapshot, where, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { format, isValid } from 'date-fns';
 import { Info } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import PaginatedTable from '../../components/ui/PaginatedTable';
+import debounce from 'lodash/debounce';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AuditLog {
   id: string;
@@ -13,10 +15,10 @@ interface AuditLog {
   actionDescription?: string;
   targetEntityType?: string;
   targetEntityDescription?: string;
-  actor?: { name?: string; email?: string; role?: string };
-  actorUserName?: string; // Backward compatibility
-  actorUserEmail?: string; // Backward compatibility
-  actorUserRole?: string; // Backward compatibility
+  actor?: { name?: string; email?: string; role?: string; phone?: string };
+  actorUserName?: string;
+  actorUserEmail?: string;
+  actorUserRole?: string;
   source?: string;
   [key: string]: any;
 }
@@ -35,73 +37,189 @@ const CombinedHistoryPage: React.FC = () => {
   const [selectedAction, setSelectedAction] = useState('');
   const [selectedSource, setSelectedSource] = useState('');
   const [selectedActor, setSelectedActor] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
+  const [prevCursors, setPrevCursors] = useState<DocumentSnapshot[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const { currentUser, isLoadingAuth } = useAuth();
 
-  // Derive unique actions and actors for dropdowns
   const actions = Array.from(new Set(logs.map((log) => log.actionType).filter(Boolean))).sort();
   const actors = Array.from(
     new Set(logs.map((log) => log.actor?.email || log.actorUserEmail).filter(Boolean))
   ).sort();
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        const q = query(collection(db, 'platformAuditLogs'), orderBy('timestamp', 'desc'));
-        const snapshot = await getDocs(q);
+  const fetchLogs = (page: number, direction: 'next' | 'prev' | 'first' = 'first') => {
+    if (!currentUser || isLoadingAuth) return;
+
+    console.log('[DEBUG] CombinedHistoryPage: Fetching logs for page:', page, 'Direction:', direction);
+    setLoading(true);
+
+    let q;
+    if (direction === 'next' && lastVisible) {
+      q = query(
+        collection(db, 'platformAuditLogs'),
+        orderBy('timestamp', 'desc'),
+        startAfter(lastVisible),
+        limit(rowsPerPage)
+      );
+    } else if (direction === 'prev' && prevCursors[page - 1]) {
+      q = query(
+        collection(db, 'platformAuditLogs'),
+        orderBy('timestamp', 'desc'),
+        startAfter(prevCursors[page - 1]),
+        limit(rowsPerPage)
+      );
+    } else {
+      q = query(
+        collection(db, 'platformAuditLogs'),
+        orderBy('timestamp', 'desc'),
+        limit(rowsPerPage)
+      );
+    }
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
         const data: AuditLog[] = snapshot.docs.map((doc) => {
           const docData = doc.data();
           console.log('[DEBUG] CombinedHistoryPage: Fetched log:', docData);
           return {
             id: doc.id,
             timestamp: docData.timestamp,
-            actionType: docData.actionType,
-            actionDescription: docData.actionDescription,
-            targetEntityType: docData.targetEntityType,
-            targetEntityDescription: docData.targetEntityDescription,
-            actor: docData.actor,
-            actorUserName: docData.actorUserName,
-            actorUserEmail: docData.actorUserEmail,
-            actorUserRole: docData.actorUserRole,
-            source: docData.source,
+            actionType: docData.actionType || '',
+            actionDescription: docData.actionDescription || '',
+            targetEntityType: docData.targetEntityType || '',
+            targetEntityDescription: docData.targetEntityDescription || '',
+            actor: docData.actor || {},
+            actorUserName: docData.actorUserName || '',
+            actorUserEmail: docData.actorUserEmail || '',
+            actorUserRole: docData.actorUserRole || '',
+            source: docData.source || '',
             ...docData,
           };
         });
         console.log('[DEBUG] CombinedHistoryPage: All fetched logs:', data);
         setLogs(data);
         setFilteredLogs(data);
-      } catch (err) {
+        setHasMore(data.length === rowsPerPage);
+
+        const newLastVisible = snapshot.docs[snapshot.docs.length - 1];
+        if (direction === 'next' && newLastVisible) {
+          setPrevCursors((prev) => [...prev.slice(0, currentPage), lastVisible].filter((cursor): cursor is DocumentSnapshot => cursor !== null));
+          setLastVisible(newLastVisible);
+        } else if (direction === 'prev') {
+          setLastVisible(prevCursors[page] || null);
+          setPrevCursors((prev) => prev.slice(0, page));
+        } else if (direction === 'first') {
+          setLastVisible(newLastVisible || null);
+          setPrevCursors([]);
+        }
+        setLoading(false);
+      },
+      (err) => {
         console.error('[DEBUG] CombinedHistoryPage: Error fetching audit logs:', err);
         setError('Failed to load audit logs. Please try again.');
-      } finally {
         setLoading(false);
       }
+    );
+
+    return unsubscribe;
+  };
+
+  const runSearchQuery = async (term: string) => {
+    setLoading(true);
+    try {
+      // Firestore doesn't support full-text search, so we fetch all logs and filter client-side
+      const q = query(collection(db, 'platformAuditLogs'), orderBy('timestamp', 'desc'));
+      const snapshot = await getDocs(q);
+      const data: AuditLog[] = snapshot.docs.map((doc) => {
+        const docData = doc.data();
+        return {
+          id: doc.id,
+          timestamp: docData.timestamp,
+          actionType: docData.actionType || '',
+          actionDescription: docData.actionDescription || '',
+          targetEntityType: docData.targetEntityType || '',
+          targetEntityDescription: docData.targetEntityDescription || '',
+          actor: docData.actor || {},
+          actorUserName: docData.actorUserName || '',
+          actorUserEmail: docData.actorUserEmail || '',
+          actorUserRole: docData.actorUserRole || '',
+          source: docData.source || '',
+          ...docData,
+        };
+      });
+
+      const filtered = data.filter((log) =>
+        JSON.stringify(log).toLowerCase().includes(term.toLowerCase())
+      );
+      console.log('[DEBUG] CombinedHistoryPage: Search results fetched:', filtered);
+      setLogs(filtered);
+      setFilteredLogs(filtered);
+      setHasMore(false);
+      setLastVisible(null);
+      setPrevCursors([]);
+    } catch (err) {
+      console.error('[DEBUG] CombinedHistoryPage: Error in search query:', err);
+      setError('Search failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const debouncedSearch = debounce((term: string) => {
+    if (term.trim()) {
+      runSearchQuery(term);
+    } else {
+      setCurrentPage(0);
+      fetchLogs(0, 'first');
+    }
+  }, 300);
+
+  useEffect(() => {
+    if (!currentUser || isLoadingAuth) return;
+
+    let unsubscribe: (() => void) | undefined;
+    if (!searchTerm.trim()) {
+      unsubscribe = fetchLogs(currentPage);
+    } else {
+      debouncedSearch(searchTerm);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      debouncedSearch.cancel();
     };
-    fetchLogs();
-  }, []);
+  }, [searchTerm, rowsPerPage, currentPage, currentUser, isLoadingAuth]);
 
   useEffect(() => {
     const applyFilters = () => {
       const filtered = logs.filter((log) => {
         const logTime = log.timestamp?.toDate?.();
-        const matchesSearch = searchTerm
-          ? JSON.stringify(log).toLowerCase().includes(searchTerm.toLowerCase())
-          : true;
-
         const matchesAction = selectedAction ? log.actionType === selectedAction : true;
         const matchesSource = selectedSource ? log.source === selectedSource : true;
         const matchesActor = selectedActor
           ? log.actor?.email === selectedActor || log.actorUserEmail === selectedActor
           : true;
-
         const matchesDateRange =
           (!dateFrom || (logTime && new Date(dateFrom) <= logTime)) &&
           (!dateTo || (logTime && logTime <= new Date(dateTo)));
 
-        return matchesSearch && matchesAction && matchesSource && matchesActor && matchesDateRange;
+        return matchesAction && matchesSource && matchesActor && matchesDateRange;
       });
       setFilteredLogs(filtered);
     };
     applyFilters();
-  }, [logs, searchTerm, dateFrom, dateTo, selectedAction, selectedSource, selectedActor]);
+  }, [logs, dateFrom, dateTo, selectedAction, selectedSource, selectedActor]);
+
+  const handlePageChange = (newPage: number) => {
+    if (searchTerm.trim()) {
+      return;
+    }
+    const direction = newPage > currentPage ? 'next' : newPage < currentPage ? 'prev' : 'first';
+    setCurrentPage(newPage);
+    fetchLogs(newPage, direction);
+  };
 
   const openInfoModal = (log: AuditLog) => {
     console.log('[DEBUG] CombinedHistoryPage: Opening info modal for log:', log.id);
@@ -116,6 +234,10 @@ const CombinedHistoryPage: React.FC = () => {
     setSelectedAction('');
     setSelectedSource('');
     setSelectedActor('');
+    setCurrentPage(0);
+    setLastVisible(null);
+    setPrevCursors([]);
+    setHasMore(true);
   };
 
   const handleExportCSV = () => {
@@ -181,7 +303,14 @@ const CombinedHistoryPage: React.FC = () => {
             id="rowsPerPage"
             className="border px-2 py-1 rounded text-sm"
             value={rowsPerPage}
-            onChange={(e) => setRowsPerPage(Number(e.target.value))}
+            onChange={(e) => {
+              setRowsPerPage(Number(e.target.value));
+              setCurrentPage(0);
+              setPrevCursors([]);
+              setLastVisible(null);
+              setHasMore(true);
+            }}
+            disabled={searchTerm.trim() !== ''}
           >
             {[5, 10, 20, 30].map((n) => (
               <option key={n} value={n}>
@@ -203,7 +332,7 @@ const CombinedHistoryPage: React.FC = () => {
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Date From</label>
           <input
-          aria-label='Select Date From'
+            aria-label="Select Date From"
             type="date"
             className="border rounded px-3 py-2 text-sm"
             value={dateFrom}
@@ -213,7 +342,7 @@ const CombinedHistoryPage: React.FC = () => {
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-slate-300">Date To</label>
           <input
-            aria-label='Select Date To'
+            aria-label="Select Date To"
             type="date"
             className="border rounded px-3 py-2 text-sm"
             value={dateTo}
@@ -221,7 +350,7 @@ const CombinedHistoryPage: React.FC = () => {
           />
         </div>
         <select
-        aria-label='Filter by Action'
+          aria-label="Filter by Action"
           value={selectedAction}
           onChange={(e) => setSelectedAction(e.target.value)}
           className="border rounded px-3 py-2 text-sm"
@@ -234,7 +363,7 @@ const CombinedHistoryPage: React.FC = () => {
           ))}
         </select>
         <select
-        aria-label='Filter by Source'
+          aria-label="Filter by Source"
           value={selectedSource}
           onChange={(e) => setSelectedSource(e.target.value)}
           className="border rounded px-3 py-2 text-sm"
@@ -244,7 +373,7 @@ const CombinedHistoryPage: React.FC = () => {
           <option value="Assignment Log">Assignment Log</option>
         </select>
         <select
-        aria-label='Filter by Actor'
+          aria-label="Filter by Actor"
           value={selectedActor}
           onChange={(e) => setSelectedActor(e.target.value)}
           className="border rounded px-3 py-2 text-sm"
@@ -286,7 +415,9 @@ const CombinedHistoryPage: React.FC = () => {
             { key: 'actions', label: 'Info' },
           ]}
           data={filteredLogs}
-          rowsPerPage={rowsPerPage}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          hasMore={hasMore}
           renderRow={(log) => (
             <>
               <td className="px-4 py-2 text-sm">{formatTimeAgo(log.timestamp)}</td>
