@@ -59,6 +59,11 @@ export const NAV_ITEMS: NavItem[] = [
     icon: <Home size={iconSize} />,
     roles: [UserRole.SuperAdmin, UserRole.Admin]
   },
+  {name: 'Subscriptions',
+    path:'/finance/Subscriptions',
+    icon:<Package size={iconSize} />,
+    roles: [UserRole.SuperAdmin, UserRole.Admin, UserRole.Finance]
+  },
   {name: 'Payments',
     path:'/finance/Payments',
     icon:<Package size={iconSize} />,

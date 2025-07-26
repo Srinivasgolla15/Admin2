@@ -497,6 +497,7 @@ const AllClientsPage: React.FC = () => {
             email: selectedClient.email,
             phone: selectedClient.phone || '',
           }}
+          
           editableFields={['name', 'email', 'phone']}
           onSave={handleClientUpdate}
           currentUser={currentUser}

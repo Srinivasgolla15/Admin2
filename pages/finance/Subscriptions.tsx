@@ -11,7 +11,7 @@ import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
 import debounce from 'lodash/debounce';
 
-const PaymentsPage: React.FC = () => {
+const SubscriptionsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -246,7 +246,7 @@ const PaymentsPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Premium Payments</h1>
+        <h1 className="text-2xl font-semibold">Premium Subscriptions</h1>
         <div className="flex items-center gap-2">
           <label htmlFor="rowsPerPage" className="text-sm text-gray-700 dark:text-slate-300">
             Rows per page:
@@ -439,4 +439,4 @@ const PaymentsPage: React.FC = () => {
   );
 };
 
-export default PaymentsPage;
+export default SubscriptionsPage;
