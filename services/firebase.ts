@@ -1,7 +1,7 @@
 // src/services/firebase.ts
 
 /// <reference types="vite/client" />
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
@@ -32,3 +32,10 @@ isSupported().then((ok) => {
 });
 
 export { app, auth, db, analytics,firebaseConfig };
+
+// Add this function to get a secondary app instance for admin actions
+export function getAdminAppInstance(): FirebaseApp {
+  const existing = getApps().find(app => app.name === 'AdminApp');
+  if (existing) return existing;
+  return initializeApp(firebaseConfig, 'AdminApp');
+}

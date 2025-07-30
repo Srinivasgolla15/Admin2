@@ -12,6 +12,8 @@ import {
   limit,
   startAfter,
   DocumentSnapshot,
+  setDoc,
+  where,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import {
@@ -26,6 +28,9 @@ import Modal from '../../components/ui/Modal';
 import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
+import { getAdminAppInstance } from '../../services/firebase';
+import { getAuth as getAdminAuth } from 'firebase/auth';
+import { getFirestore as getAdminFirestore, collection as adminCollection, addDoc as adminAddDoc, setDoc as adminSetDoc, doc as adminDoc } from 'firebase/firestore';
 
 const getRoleBadgeColor = (role: string) => {
   switch (role) {
@@ -39,6 +44,15 @@ const getRoleBadgeColor = (role: string) => {
   }
 };
 
+const roleOptions: UserRole[] = [
+  UserRole.SuperAdmin,
+  UserRole.Admin,
+  UserRole.Sales,
+  UserRole.Operations,
+  UserRole.Finance,
+  UserRole.Employee,
+];
+
 const PlatformUserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -51,6 +65,8 @@ const PlatformUserManagementPage: React.FC = () => {
   const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
   const [prevCursors, setPrevCursors] = useState<DocumentSnapshot[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const { currentUser, isLoadingAuth } = useAuth();
 
  
@@ -125,6 +141,8 @@ const PlatformUserManagementPage: React.FC = () => {
       role: UserRole.Employee,
     });
     setError(null);
+    setSuccess(null);
+    setToast(null);
     setIsModalOpen(true);
   };
 
@@ -138,6 +156,8 @@ const PlatformUserManagementPage: React.FC = () => {
       role: user.role,
     });
     setError(null);
+    setSuccess(null);
+    setToast(null);
     setIsModalOpen(true);
   };
 
@@ -149,6 +169,8 @@ const PlatformUserManagementPage: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
+    setToast(null);
     setLoading(true);
 
     const currentTime = Timestamp.fromDate(new Date());
@@ -158,26 +180,42 @@ const PlatformUserManagementPage: React.FC = () => {
       try {
         const { email, password, name, phone, role } = updateFormData;
         if (!email || !password) {
-          setError('Email and password are required for new users');
+          setToast({ type: 'error', message: 'Email and password are required for new users' });
           setLoading(false);
           return;
         }
         if (password.length < 6) {
-          setError('Password must be at least 6 characters long');
+          setToast({ type: 'error', message: 'Password must be at least 6 characters long' });
           setLoading(false);
           return;
         }
-
-        console.log('Creating user in Firebase Auth:', { email });
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        if (phone && !/^\d{10}$/.test(phone)) {
+          setToast({ type: 'error', message: 'Phone number must be exactly 10 digits.' });
+          setLoading(false);
+          return;
+        }
+        // Use secondary app instance for admin user creation
+        const adminApp = getAdminAppInstance();
+        const adminAuth = getAdminAuth(adminApp);
+        const adminDb = getAdminFirestore(adminApp);
+        // Check for unique phone number
+        if (phone) {
+          const phoneQuery = query(collection(adminDb, 'users'), where('phone', '==', phone));
+          const phoneSnapshot = await getDocs(phoneQuery);
+          if (!phoneSnapshot.empty) {
+            setToast({ type: 'error', message: 'Phone number is already in use. Please use a different phone number.' });
+            setLoading(false);
+            return;
+          }
+        }
+        console.log('Creating user in Firebase Auth (admin instance):', { email });
+        const userCredential = await createUserWithEmailAndPassword(adminAuth, email, password);
         const newUser = userCredential.user;
-
         console.log('User created in Firebase Auth:', { uid: newUser.uid, email });
         if (name) {
           await updateProfile(newUser, { displayName: name });
           console.log('Display name updated:', { name });
         }
-
         const firestoreData = {
           id: newUser.uid,
           name: name || '',
@@ -186,19 +224,17 @@ const PlatformUserManagementPage: React.FC = () => {
           role: role || UserRole.Employee,
           createdAt: currentTime,
         };
-
-        console.log('Storing user in Firestore:', firestoreData);
-        await addDoc(collection(db, 'users'), firestoreData);
-        console.log('User stored in Firestore:', { uid: newUser.uid });
-
-        await sendPasswordResetEmail(auth, email, {
-          url: 'https://your-app.com/login', // Replace with your login page URL
-          handleCodeInApp: true,
-        });
-        console.log('Password reset email sent to:', email);
-
+        console.log('Storing user in Firestore (admin instance):', firestoreData);
+        try {
+          await adminSetDoc(adminDoc(adminDb, 'users', newUser.uid), firestoreData);
+          console.log('User stored in Firestore:', { uid: newUser.uid });
+        } catch (firestoreError) {
+          console.error('Error writing to Firestore. Check Firestore rules and permissions.', firestoreError);
+          setToast({ type: 'error', message: 'Failed to store user in Firestore. Check Firestore rules and permissions.' });
+          setLoading(false);
+          return;
+        }
         if (currentUser) {
-          console.log('Logging audit for user creation:', { actor: currentUser.email, target: email });
           await PlatformAuditLog({
             actionType: 'CREATE_USER',
             actor: {
@@ -218,11 +254,29 @@ const PlatformUserManagementPage: React.FC = () => {
             ),
           });
         }
-
+        if (role === UserRole.Employee) {
+          const employeeData = {
+            id: newUser.uid,
+            name: name || '',
+            email: email || '',
+            role: UserRole.Employee,
+            phone: phone || '',
+            employmentStatus: 'Active',
+            joinedOn: currentTime.toDate().toISOString(),
+          };
+          try {
+            await adminSetDoc(adminDoc(adminDb, 'employees', newUser.uid), employeeData);
+          } catch (employeeError) {
+            setToast({ type: 'error', message: 'User created, but failed to add to employees table.' });
+            setLoading(false);
+            return;
+          }
+        }
         await fetchUsers(currentPage, 'first');
         setIsModalOpen(false);
         setSelectedUser(null);
         setUpdateFormData({});
+        setToast({ type: 'success', message: 'User created successfully!' });
       } catch (error: any) {
         const errorMessage = error.code === 'auth/email-already-in-use'
           ? 'Email is already in use. Please use a different email.'
@@ -230,7 +284,7 @@ const PlatformUserManagementPage: React.FC = () => {
           ? 'Invalid email format. Please enter a valid email.'
           : error.message || 'Failed to create user';
         console.error('Error creating user:', error);
-        setError(errorMessage);
+        setToast({ type: 'error', message: errorMessage });
         setLoading(false);
         return;
       }
@@ -288,7 +342,7 @@ const PlatformUserManagementPage: React.FC = () => {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
         console.error('Error updating user:', error);
-        setError(errorMessage);
+        setToast({ type: 'error', message: errorMessage });
         setLoading(false);
         return;
       }
@@ -299,13 +353,24 @@ const PlatformUserManagementPage: React.FC = () => {
   const handleDelete = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       setLoading(true);
+      setError(null);
+      setSuccess(null);
+      setToast(null);
       try {
         const userToDelete = users.find((user) => user.id === userId);
         const currentTime = Timestamp.fromDate(new Date());
-
         console.log('Deleting user from Firestore:', { id: userId });
         await deleteDoc(doc(db, 'users', userId));
-
+        // If the user is an employee, delete from employees table too
+        if (userToDelete && userToDelete.role === UserRole.Employee) {
+          try {
+            await deleteDoc(doc(db, 'employees', userId));
+          } catch (employeeDeleteError) {
+            setToast({ type: 'error', message: 'User deleted, but failed to remove from employees table.' });
+            setLoading(false);
+            return;
+          }
+        }
         if (currentUser && userToDelete) {
           console.log('Logging audit for user deletion:', { actor: currentUser.email, target: userId });
           await PlatformAuditLog({
@@ -325,12 +390,12 @@ const PlatformUserManagementPage: React.FC = () => {
             details: { id: userId },
           });
         }
-
         await fetchUsers(currentPage, 'first');
+        setToast({ type: 'success', message: 'User deleted successfully!' });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
         console.error('Error deleting user:', error);
-        setError(errorMessage);
+        setToast({ type: 'error', message: errorMessage });
       } finally {
         setLoading(false);
       }
@@ -347,9 +412,24 @@ const PlatformUserManagementPage: React.FC = () => {
     actions: user,
   }));
 
+  // Toast auto-hide effect
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   return (
     <div className="p-6">
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {toast && (
+        <div
+          className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] px-4 py-3 rounded shadow-lg text-white transition-all ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}
+          style={{ minWidth: 300, textAlign: 'center' }}
+        >
+          {toast.message}
+        </div>
+      )}
       {loading && <p className="text-gray-500 mb-4">Loading...</p>}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold">Platform User Management</h1>
@@ -441,14 +521,16 @@ const PlatformUserManagementPage: React.FC = () => {
                 >
                   <UserCog size={18} />
                 </button>
-                <button
-                  aria-label="Delete User"
-                  className="text-red-600 hover:text-red-800 transition disabled:opacity-50"
-                  onClick={() => handleDelete(user.actions.id)}
-                  disabled={loading}
-                >
-                  <Trash2 size={18} />
-                </button>
+                {user.role !== UserRole.SuperAdmin && (
+                  <button
+                    aria-label="Delete User"
+                    className="text-red-600 hover:text-red-800 transition disabled:opacity-50"
+                    onClick={() => handleDelete(user.actions.id)}
+                    disabled={loading}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </td>
             </>
           )}
@@ -463,6 +545,8 @@ const PlatformUserManagementPage: React.FC = () => {
             setSelectedUser(null);
             setUpdateFormData({});
             setError(null);
+            setSuccess(null);
+            setToast(null);
           }}
           title={selectedUser ? 'Update User' : 'Add New User'}
         >
@@ -504,6 +588,8 @@ const PlatformUserManagementPage: React.FC = () => {
                 placeholder="Enter phone number"
                 autoComplete="off"
                 disabled={loading}
+                maxLength={10}
+                pattern="\d{10}"
               />
             </div>
             {!selectedUser && (
@@ -529,8 +615,9 @@ const PlatformUserManagementPage: React.FC = () => {
                 onChange={handleUpdateFormChange}
                 className="w-full p-2 border rounded"
                 disabled={loading}
+                title="Select user role"
               >
-                {roleOptions.map((role) => (
+                {roleOptions.map((role: UserRole) => (
                   <option key={role} value={role}>
                     {role}
                   </option>
@@ -546,6 +633,8 @@ const PlatformUserManagementPage: React.FC = () => {
                   setSelectedUser(null);
                   setUpdateFormData({});
                   setError(null);
+                  setSuccess(null);
+                  setToast(null);
                 }}
                 disabled={loading}
               >
