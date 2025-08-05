@@ -353,71 +353,62 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
         ) : (
           <PaginatedTable
             columns={[]}
-            data={[{}]}
+            data={requests.length === 0 ? [{} as ContactRequest] : requests}
             currentPage={currentPage}
             onPageChange={handlePageChange}
             hasMore={hasMore}
-            renderRow={() => (
-              <tr>
-                <td colSpan={1} className="p-0 bg-transparent border-none">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {requests.length === 0 ? (
-                      <div className="col-span-full text-center text-gray-600 p-4">No contact requests found.</div>
-                    ) : (
-                      requests.map((request) => {
-                        const req = request as ContactRequest;
-                        return (
-                          <div key={req.id} className="bg-white border rounded-lg shadow-md overflow-hidden flex flex-col">
-                            <img
-                              src={
-                                (req.propertyId && propertyImages[req.propertyId]) ||
-                                "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
-                              }
-                              alt="Property"
-                              className="h-40 w-full object-cover bg-gray-100"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80";
-                              }}
-                            />
-                            <div className="p-4 flex-1 flex flex-col">
-                              <div className="font-bold text-lg text-gray-900 mb-1">{req.name}</div>
-                              <div className="text-gray-600 text-sm mb-1">{req.propertyType || 'Property'}</div>
-                              <div className="text-gray-700 mb-2">
-                                <span className="block"><Mail size={14} className="inline mr-1" /> {req.email}</span>
-                                <span className="block"><Phone size={14} className="inline mr-1" /> {req.phone}</span>
-                              </div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(req.status)}`}>{req.status}</span>
-                                <span className="flex items-center text-gray-500 text-xs"><CalendarDays size={14} className="mr-1" />{format(req.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</span>
-                              </div>
-                              <div className="text-gray-500 text-xs mb-2">Submitted by: {req.submittedBy}</div>
-                              <div className="flex gap-2 mt-auto">
-                                
-                                <button
-                                  aria-label="View Request Info"
-                                  className="flex-1 px-3 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 text-sm font-medium"
-                                  onClick={() => openInfoModal(req)}
-                                >
-                                  <Info size={16} className="inline mr-1" /> Info
-                                </button>
-                                <button
-                                  aria-label="Edit Request"
-                                  className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 text-sm font-medium"
-                                  onClick={() => openEditModal(req)}
-                                >
-                                  <Pencil size={16} className="inline mr-1" /> Edit
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+            containerClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            renderRow={(request) => {
+              // If no requests, show empty message
+              if (!request || !request.id) {
+                return <div className="col-span-full text-center text-gray-600 p-4">No contact requests found.</div>;
+              }
+              const req = request as ContactRequest;
+              return (
+                <div key={req.id} className="bg-white border rounded-lg shadow-md overflow-hidden flex flex-col">
+                  <img
+                    src={
+                      (req.propertyId && propertyImages[req.propertyId]) ||
+                      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
+                    }
+                    alt="Property"
+                    className="h-40 w-full object-cover bg-gray-100"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80";
+                    }}
+                  />
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="font-bold text-lg text-gray-900 mb-1">{req.name}</div>
+                    <div className="text-gray-600 text-sm mb-1">{req.propertyType || 'Property'}</div>
+                    <div className="text-gray-700 mb-2">
+                      <span className="block"><Mail size={14} className="inline mr-1" /> {req.email}</span>
+                      <span className="block"><Phone size={14} className="inline mr-1" /> {req.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(req.status)}`}>{req.status}</span>
+                      <span className="flex items-center text-gray-500 text-xs"><CalendarDays size={14} className="mr-1" />{format(req.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</span>
+                    </div>
+                    <div className="text-gray-500 text-xs mb-2">Submitted by: {req.submittedBy}</div>
+                    <div className="flex gap-2 mt-auto">
+                      <button
+                        aria-label="View Request Info"
+                        className="flex-1 px-3 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 text-sm font-medium"
+                        onClick={() => openInfoModal(req)}
+                      >
+                        <Info size={16} className="inline mr-1" /> Info
+                      </button>
+                      <button
+                        aria-label="Edit Request"
+                        className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 text-sm font-medium"
+                        onClick={() => openEditModal(req)}
+                      >
+                        <Pencil size={16} className="inline mr-1" /> Edit
+                      </button>
+                    </div>
                   </div>
-
-                </td>
-              </tr>
-            )}
+                </div>
+              );
+            }}
           />
         )}
 

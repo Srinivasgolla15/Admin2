@@ -1,12 +1,14 @@
 import React from 'react';
 
 type PaginatedTableProps<T> = {
-  columns: { key: string; label: string }[];
+  columns?: { key: string; label: string }[];
   data: T[];
   currentPage?: number;
   onPageChange?: (newPage: number) => void;
   hasMore?: boolean;
   renderRow: (item: T) => React.ReactNode;
+  containerClassName?: string; // for grid/flex layouts
+  renderContainer?: (children: React.ReactNode) => React.ReactNode; // advanced custom wrapper
 };
 
 const PaginatedTable = <T,>({
@@ -16,6 +18,8 @@ const PaginatedTable = <T,>({
   onPageChange,
   hasMore = true,
   renderRow,
+  containerClassName,
+  renderContainer,
 }: PaginatedTableProps<T>) => {
   const handlePrev = () => {
     if (currentPage > 0) {
@@ -29,8 +33,9 @@ const PaginatedTable = <T,>({
     }
   };
 
-  return (
-    <div className="space-y-4">
+  let content;
+  if (columns && columns.length > 0) {
+    content = (
       <div className="overflow-x-auto rounded-lg shadow">
         <table className="min-w-full bg-white dark:bg-slate-800 text-sm">
           <thead className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
@@ -59,7 +64,22 @@ const PaginatedTable = <T,>({
           </tbody>
         </table>
       </div>
+    );
+  } else if (renderContainer) {
+    content = renderContainer(data.map((item, idx) => <React.Fragment key={(item as any).id || idx}>{renderRow(item)}</React.Fragment>));
+  } else {
+    content = (
+      <div className={containerClassName || ''}>
+        {data.map((item, idx) => (
+          <React.Fragment key={(item as any).id || idx}>{renderRow(item)}</React.Fragment>
+        ))}
+      </div>
+    );
+  }
 
+  return (
+    <div className="space-y-4">
+      {content}
       {/* Pagination Controls */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-slate-700 dark:text-slate-300">Page {currentPage + 1}</span>
