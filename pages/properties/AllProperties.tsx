@@ -3,7 +3,7 @@ import { collection, query, getDocs, orderBy, limit, startAfter, DocumentSnapsho
 import { getAuth } from 'firebase/auth';
 import { db } from '../../services/firebase';
 import { Property } from '../../types';
-import { Eye, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import PaginatedTable from '../../components/ui/PaginatedTable';
@@ -247,14 +247,14 @@ const AllPropertiesPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">All Properties</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">All Properties</h1>
         <div className="flex items-center gap-2">
-          <label htmlFor="rowsPerPage" className="text-sm text-gray-700 dark:text-slate-300">
+          <label htmlFor="rowsPerPage" className="text-sm text-slate-900 dark:text-slate-100">
             Rows per page:
           </label>
           <select
             id="rowsPerPage"
-            className="border px-2 py-1 rounded text-sm"
+            className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 rounded text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500"
             value={rowsPerPage}
             onChange={(e) => {
               setRowsPerPage(Number(e.target.value));
@@ -277,7 +277,7 @@ const AllPropertiesPage: React.FC = () => {
         <input
           type="text"
           placeholder="Search by name..."
-          className="w-full max-w-md border px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full max-w-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 rounded text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -315,7 +315,7 @@ const AllPropertiesPage: React.FC = () => {
                   className="text-blue-600 hoverapitalizeext-blue-800 transition"
                   onClick={() => openInfoModal(p)}
                 >
-                  <Eye size={18} />
+                  Info
                 </button>
                 <button
                   aria-label="Edit Property"

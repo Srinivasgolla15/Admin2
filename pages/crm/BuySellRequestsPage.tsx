@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { CalendarDays, Mail, Phone, Pencil, Info } from 'lucide-react';
 import PaginatedTable from '../../components/ui/PaginatedTable';
 import Modal from '../../components/ui/Modal';
+import BuySellRequestPopupPanel from '../../components/ui/BuySellRequestPopupPanel';
 import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
 import debounce from 'lodash/debounce';
@@ -394,27 +395,12 @@ const BuySellRequestPage: React.FC = () => {
       <Modal isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Contact Request Info">
         {selectedRequest && (
           <div className="space-y-3">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Request Details</h3>
-              <p><strong>Name:</strong> {selectedRequest.name}</p>
-              <p><strong>Email:</strong> {selectedRequest.email}</p>
-              <p><strong>Phone:</strong> {selectedRequest.phone}</p>
-              <p><strong>Property Type:</strong> {selectedRequest.propertyType}</p>
-              <p><strong>Property ID:</strong> {selectedRequest.propertyId}</p>
-              <p><strong>Status:</strong> {selectedRequest.status}</p>
-              <p><strong>Message:</strong> {selectedRequest.message}</p>
-              <p><strong>Submitted By:</strong> {selectedRequest.submittedBy}</p>
-              <p><strong>Submitted At:</strong> {format(selectedRequest.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</p>
-              <p><strong>Updated At:</strong> {selectedRequest.updatedAt && typeof selectedRequest.updatedAt.toDate === 'function' ? format(selectedRequest.updatedAt.toDate(), 'dd MMM yyyy, hh:mm a') : '—'}</p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                className="px-3 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-                onClick={() => setIsInfoOpen(false)}
-              >
-                Close
-              </button>
-            </div>
+            {isInfoOpen && selectedRequest && (
+              <BuySellRequestPopupPanel
+                requestId={selectedRequest.id}
+                onClose={() => setIsInfoOpen(false)}
+              />
+            )}
           </div>
         )}
       </Modal>
@@ -422,7 +408,7 @@ const BuySellRequestPage: React.FC = () => {
       {selectedRequest && (
         <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Update Contact Request">
           <form onSubmit={(e) => { e.preventDefault(); handleRequestUpdate(); }} className="space-y-3">
-            <div>
+            // ... (rest of the code remains the same)
               <label className="block text-sm font-medium text-gray-700">Name</label>
               <input
                 type="text"
@@ -431,9 +417,8 @@ const BuySellRequestPage: React.FC = () => {
                 onChange={handleUpdateFormChange}
                 className="w-full mt-1 p-2 border border-gray-200 rounded-md"
               />
-            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
                 type="email"
                 name="email"
