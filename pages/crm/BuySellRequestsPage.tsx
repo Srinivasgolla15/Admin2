@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   collection,
   getDocs,
+  getDoc,
   orderBy,
   query,
   limit,
@@ -15,9 +16,10 @@ import {
 import { db } from '../../services/firebase';
 import { format } from 'date-fns';
 import { CalendarDays, Mail, Phone, Pencil, Info } from 'lucide-react';
+import BuySellRequestPopupPanel from '../../components/ui/BuySellRequestPopupPanel';
 import PaginatedTable from '../../components/ui/PaginatedTable';
 import Modal from '../../components/ui/Modal';
-import BuySellRequestPopupPanel from '../../components/ui/BuySellRequestPopupPanel';
+
 import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
 import debounce from 'lodash/debounce';
@@ -54,9 +56,12 @@ const getStatusBadgeColor = (status: string) => {
 
 const BuySellRequestPage: React.FC = () => {
   const [requests, setRequests] = useState<ContactRequest[]>([]);
+const [propertyImages, setPropertyImages] = useState<Record<string, string>>({});
   const [selectedRequest, setSelectedRequest] = useState<ContactRequest | null>(null);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -130,17 +135,42 @@ const BuySellRequestPage: React.FC = () => {
       setRequests(data);
       setHasMore(data.length === rowsPerPage);
 
-      const newLastVisible = snapshot.docs[snapshot.docs.length - 1];
-      if (direction === 'next' && newLastVisible) {
-        setPrevCursors((prev) => [...prev.slice(0, page), lastVisible].filter((cursor): cursor is DocumentSnapshot => cursor !== null));
-        setLastVisible(newLastVisible);
-      } else if (direction === 'prev') {
-        setLastVisible(prevCursors[page - 1] || null);
-        setPrevCursors((prev) => prev.slice(0, page - 1));
+      // Fetch property images for each request
+      const propertyIds = data.map((req) => req.propertyId).filter(Boolean);
+      if (propertyIds.length > 0) {
+        const images: Record<string, string> = {};
+        await Promise.all(
+          propertyIds.map(async (propertyId) => {
+            try {
+              const propSnap = await getDoc(doc(db, 'properties', propertyId));
+              if (propSnap.exists()) {
+                const propData = propSnap.data();
+                const imageArr = propData.imageUrls || propData.photos || [];
+                if (Array.isArray(imageArr) && imageArr.length > 0) {
+                  images[propertyId] = imageArr[0];
+                }
+              }
+            } catch (e) {
+              // Ignore errors for missing properties
+            }
+          })
+        );
+        setPropertyImages(images);
       } else {
-        setLastVisible(newLastVisible || null);
-        setPrevCursors([]);
+        setPropertyImages({});
       }
+
+      const newLastVisible = snapshot.docs[snapshot.docs.length - 1];
+if (direction === 'next' && newLastVisible) {
+  setPrevCursors((prev) => [...prev.slice(0, currentPage), lastVisible].filter((cursor): cursor is DocumentSnapshot => cursor !== null));
+  setLastVisible(newLastVisible);
+} else if (direction === 'prev') {
+  setLastVisible(prevCursors[page] || null);
+  setPrevCursors((prev) => prev.slice(0, page));
+} else if (direction === 'first') {
+  setLastVisible(newLastVisible || null);
+  setPrevCursors([]);
+}
     } catch (error) {
       console.error('[DEBUG] ContactRequestsPage: Error fetching contact requests:', error);
       setError('Failed to fetch contact requests. Please try again.');
@@ -189,12 +219,11 @@ const BuySellRequestPage: React.FC = () => {
   };
 
   const openInfoModal = (request: ContactRequest) => {
-    console.log('[DEBUG] ContactRequestsPage: Opening info modal for request:', request.id);
     setSelectedRequest(request);
     setIsInfoOpen(true);
   };
 
-  const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setUpdateFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -321,89 +350,83 @@ const BuySellRequestPage: React.FC = () => {
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         {loading ? (
           <p className="text-center text-gray-600 p-4">Fetching requests...</p>
-        ) : requests.length === 0 ? (
-          <p className="text-center text-gray-600 p-4">No contact requests found.</p>
         ) : (
           <PaginatedTable
-            columns={[
-              { key: 'name', label: 'Name' },
-              { key: 'email', label: 'Email' },
-              { key: 'phone', label: 'Phone' },
-              { key: 'propertyType', label: 'Property Type' },
-              { key: 'status', label: 'Status' },
-              { key: 'timestamp', label: 'Submitted At' },
-              { key: 'actions', label: 'Actions' },
-            ]}
-            data={requests}
+            columns={[]}
+            data={[{}]}
             currentPage={currentPage}
             onPageChange={handlePageChange}
             hasMore={hasMore}
-            renderRow={(request) => (
-              <>
-                <td className="p-2">
-                  <span className="text-gray-900">{request.name}</span>
-                </td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1 text-gray-600">
-                    <Mail size={14} />
-                    <span>{request.email}</span>
+            renderRow={() => (
+              <tr>
+                <td colSpan={1} className="p-0 bg-transparent border-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {requests.length === 0 ? (
+                      <div className="col-span-full text-center text-gray-600 p-4">No contact requests found.</div>
+                    ) : (
+                      requests.map((request) => {
+                        const req = request as ContactRequest;
+                        return (
+                          <div key={req.id} className="bg-white border rounded-lg shadow-md overflow-hidden flex flex-col">
+                            <img
+                              src={
+                                (req.propertyId && propertyImages[req.propertyId]) ||
+                                "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
+                              }
+                              alt="Property"
+                              className="h-40 w-full object-cover bg-gray-100"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80";
+                              }}
+                            />
+                            <div className="p-4 flex-1 flex flex-col">
+                              <div className="font-bold text-lg text-gray-900 mb-1">{req.name}</div>
+                              <div className="text-gray-600 text-sm mb-1">{req.propertyType || 'Property'}</div>
+                              <div className="text-gray-700 mb-2">
+                                <span className="block"><Mail size={14} className="inline mr-1" /> {req.email}</span>
+                                <span className="block"><Phone size={14} className="inline mr-1" /> {req.phone}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(req.status)}`}>{req.status}</span>
+                                <span className="flex items-center text-gray-500 text-xs"><CalendarDays size={14} className="mr-1" />{format(req.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</span>
+                              </div>
+                              <div className="text-gray-500 text-xs mb-2">Submitted by: {req.submittedBy}</div>
+                              <div className="flex gap-2 mt-auto">
+                                
+                                <button
+                                  aria-label="View Request Info"
+                                  className="flex-1 px-3 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 text-sm font-medium"
+                                  onClick={() => openInfoModal(req)}
+                                >
+                                  <Info size={16} className="inline mr-1" /> Info
+                                </button>
+                                <button
+                                  aria-label="Edit Request"
+                                  className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 text-sm font-medium"
+                                  onClick={() => openEditModal(req)}
+                                >
+                                  <Pencil size={16} className="inline mr-1" /> Edit
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
+
                 </td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1 text-gray-600">
-                    <Phone size={14} />
-                    <span>{request.phone}</span>
-                  </div>
-                </td>
-                <td className="p-2">
-                  <span className="text-blue-700">{request.propertyType || '—'}</span>
-                </td>
-                <td className="p-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(request.status)}`}>
-                    {request.status}
-                  </span>
-                </td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <CalendarDays size={14} />
-                    <span>{format(request.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</span>
-                  </div>
-                </td>
-                <td className="p-2 flex gap-2">
-                  <button
-                    aria-label="View Request Info"
-                    className="text-blue-600 hover:text-blue-800"
-                    onClick={() => openInfoModal(request)}
-                  >
-                    <Info size={18} />
-                  </button>
-                  <button
-                    aria-label="Edit Request"
-                    className="text-yellow-600 hover:text-yellow-800"
-                    onClick={() => openEditModal(request)}
-                  >
-                    <Pencil size={18} />
-                  </button>
-                </td>
-              </>
+              </tr>
             )}
           />
         )}
-      </div>
 
-      {/* Modals */}
-      <Modal isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Contact Request Info">
-        {selectedRequest && (
-          <div className="space-y-3">
-            {isInfoOpen && selectedRequest && (
-              <BuySellRequestPopupPanel
-                requestId={selectedRequest.id}
-                onClose={() => setIsInfoOpen(false)}
-              />
-            )}
-          </div>
-        )}
-      </Modal>
+      {isInfoOpen && selectedRequest && (
+        <BuySellRequestPopupPanel
+          requestId={selectedRequest.id}
+          onClose={() => setIsInfoOpen(false)}
+        />
+      )}
 
       {selectedRequest && (
         <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Update Contact Request">
@@ -471,6 +494,8 @@ const BuySellRequestPage: React.FC = () => {
         </Modal>
       )}
     </div>
+    {/* Close main wrapper div */}
+  </div>
   );
 };
 
