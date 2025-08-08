@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, getDocs, orderBy, limit, startAfter, DocumentSnapshot, updateDoc, doc, Timestamp, where } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+// import { getAuth } from 'firebase/auth';
 import { db } from '../../services/firebase';
 import { Property } from '../../types';
 import { Pencil } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
+// import Button from '../../components/ui/Button';
 import PaginatedTable from '../../components/ui/PaginatedTable';
 import Modal from '../../components/ui/Modal';
 import EditEntityModal from '../../components/ui/EditEntityModal';
+import EmployeeTypeahead from '../../components/ui/EmployeeTypeahead';
 import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
 import debounce from 'lodash/debounce';
@@ -308,7 +309,7 @@ const AllPropertiesPage: React.FC = () => {
               <td className="px-4 py-2">{p.service}</td>
               <td className="px-4 py-2"><Badge status={p.status} /></td>
               <td className="px-4 py-2">{p.city || '-'}</td>
-              <td className="px-4 py-2">{p.assignedEmployee || 'Unassigned'}</td>
+              <td className="px-4 py-2">{p.assignedEmployeeName && p.assignedEmployeeEmail ? `${p.assignedEmployeeName} — ${p.assignedEmployeeEmail}` : (p.assignedEmployee || 'Unassigned')}</td>
               <td className="px-4 py-2 flex gap-2">
                 <button
                   aria-label="View Property Details"
@@ -346,7 +347,7 @@ const AllPropertiesPage: React.FC = () => {
             <p><strong>Address:</strong> {selectedProperty.address || '-'}</p>
             <p><strong>Square Feet:</strong> {selectedProperty.squareFeet || '-'}</p>
             <p><strong>Price:</strong> ₹{selectedProperty.price?.toLocaleString() || '-'}</p>
-            <p><strong>Assigned To:</strong> {selectedProperty.assignedEmployee || 'Not Assigned'}</p>
+            <p><strong>Assigned To:</strong> {selectedProperty.assignedEmployeeName && selectedProperty.assignedEmployeeEmail ? `${selectedProperty.assignedEmployeeName} — ${selectedProperty.assignedEmployeeEmail}` : (selectedProperty.assignedEmployee || 'Not Assigned')}</p>
             <p><strong>Submitted By:</strong> {selectedProperty.submittedBy || '-'}</p>
             <p><strong>Created At:</strong> {selectedProperty.timestamp ? format(selectedProperty.timestamp, 'dd-MM-yyyy HH:mm') : '-'}</p>
             {selectedProperty.locationLink && (
@@ -425,11 +426,64 @@ const AllPropertiesPage: React.FC = () => {
             name: selectedProperty.name,
             phone: selectedProperty.phone || '',
             assignedEmployee: selectedProperty.assignedEmployee || '',
+            assignedEmployeeName: selectedProperty.assignedEmployeeName || '',
+            assignedEmployeeEmail: selectedProperty.assignedEmployeeEmail || '',
+            assignedEmployeeId: selectedProperty.assignedEmployeeId || '',
             status: selectedProperty.status,
           }}
           editableFields={['name', 'phone', 'assignedEmployee', 'status']}
-          onSave={handlePropertyUpdate}
+          requiredFields={['name', 'status']}
+          onSave={async (updatedData) => {
+            // If assignedEmployee is an object from typeahead, denormalize
+            if (typeof updatedData.assignedEmployee === 'object' && updatedData.assignedEmployee !== null) {
+              updatedData.assignedEmployeeId = updatedData.assignedEmployee.id;
+              updatedData.assignedEmployeeName = updatedData.assignedEmployee.name;
+              updatedData.assignedEmployeeEmail = updatedData.assignedEmployee.email;
+              updatedData.assignedEmployee = updatedData.assignedEmployee.email;
+            } else if (updatedData.assignedEmployee === null) {
+              updatedData.assignedEmployeeId = '';
+              updatedData.assignedEmployeeName = '';
+              updatedData.assignedEmployeeEmail = '';
+              updatedData.assignedEmployee = '';
+            }
+            await handlePropertyUpdate(updatedData);
+          }}
           currentUser={currentUser}
+          renderField={(field, value, setValue) => {
+            if (field === 'assignedEmployee') {
+              return (
+                <EmployeeTypeahead
+                  value={value && typeof value === 'object' ? value : (selectedProperty.assignedEmployeeId ? {
+                    id: selectedProperty.assignedEmployeeId,
+                    name: selectedProperty.assignedEmployeeName,
+                    email: selectedProperty.assignedEmployeeEmail,
+                  } : null)}
+                  onChange={setValue}
+                  allowUnassign={true}
+                  currentAssignee={selectedProperty.assignedEmployeeId ? {
+                    id: selectedProperty.assignedEmployeeId,
+                    name: selectedProperty.assignedEmployeeName || selectedProperty.assignedEmployee || 'Unknown',
+                    email: selectedProperty.assignedEmployeeEmail || selectedProperty.assignedEmployee || 'unknown@example.com',
+                  } : null}
+                />
+              );
+            }
+            if (field === 'status') {
+              return (
+                <select
+                  value={value}
+                  onChange={e => setValue(e.target.value)}
+                  className="w-full border px-3 py-2 rounded text-black dark:text-white"
+                  aria-label="Edit property status"
+                >
+                  <option value="verified">Verified</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              );
+            }
+            return undefined;
+          }}
         />
       )}
     </div>

@@ -141,6 +141,9 @@ export interface Property {
 
   // Assigned employee
   assignedEmployee?: string; // email
+  assignedEmployeeId?: string;
+  assignedEmployeeName?: string;
+  assignedEmployeeEmail?: string;
 
   // Subscription link (if any)
   subscriptionId?: string;

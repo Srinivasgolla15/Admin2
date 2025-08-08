@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
+import { storage } from '../../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface PropertyDetails {
   name: string;
@@ -33,7 +35,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
     email: '',
     message: '',
   });
-  const [imageInput, setImageInput] = useState('');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -41,21 +44,33 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddImage = () => {
-    if (imageInput.trim()) {
-      setForm((prev) => ({ ...prev, imageUrls: [...prev.imageUrls, imageInput.trim()] }));
-      setImageInput('');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setImageFiles(Array.from(e.target.files));
     }
   };
 
   const handleRemoveImage = (idx: number) => {
     setForm((prev) => ({ ...prev, imageUrls: prev.imageUrls.filter((_, i) => i !== idx) }));
+    setImageFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await onSave(form);
+    let imageUrls: string[] = [];
+    if (imageFiles.length > 0) {
+      setUploading(true);
+      imageUrls = await Promise.all(
+        imageFiles.map(async (file) => {
+          const storageRef = ref(storage, `sale/${Date.now()}_${file.name}`);
+          await uploadBytes(storageRef, file);
+          return await getDownloadURL(storageRef);
+        })
+      );
+      setUploading(false);
+    }
+    await onSave({ ...form, imageUrls });
     setSaving(false);
     onClose();
     setForm({
@@ -70,6 +85,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
       email: '',
       message: '',
     });
+    setImageFiles([]);
   };
 
   if (!isOpen) return null;
@@ -94,16 +110,31 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
           <input name="landmark" value={form.landmark} onChange={handleChange} className="w-full mt-1 p-2 border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
         </div>
         <div>
-          <label className="block text-sm font-medium">Image URLs</label>
-          <div className="flex gap-2">
-            <input value={imageInput} onChange={e => setImageInput(e.target.value)} className="flex-1 border border-slate-200 dark:border-slate-700 p-2 rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
-            <button type="button" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded" onClick={handleAddImage}>Add</button>
-          </div>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {form.imageUrls.map((url, idx) => (
-              <span key={idx} className="bg-gray-200 px-2 py-1 rounded text-xs flex items-center">
-                {url} <button type="button" className="ml-1 text-red-500" onClick={() => handleRemoveImage(idx)}>x</button>
-              </span>
+          <label className="block text-sm font-medium">Upload Images</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileChange}
+            className="block w-full mt-1"
+          />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {imageFiles.map((file, idx) => (
+              <div key={idx} className="relative">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt="preview"
+                  className="w-20 h-20 object-cover rounded border border-slate-200 dark:border-slate-700"
+                />
+                <button
+                  type="button"
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                  onClick={() => handleRemoveImage(idx)}
+                  aria-label="Remove image"
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         </div>
