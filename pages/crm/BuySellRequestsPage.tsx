@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   collection,
   getDocs,
+  getDoc,
   orderBy,
   query,
   limit,
@@ -14,9 +15,13 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { format } from 'date-fns';
-import { CalendarDays, Mail, Phone, Pencil, Info } from 'lucide-react';
+import { CalendarDays, Mail, Phone, Pencil, Info, Plus } from 'lucide-react';
+import BuySellRequestPopupPanel from '../../components/ui/BuySellRequestPopupPanel';
 import PaginatedTable from '../../components/ui/PaginatedTable';
 import Modal from '../../components/ui/Modal';
+import AddPropertyModal from '../../components/ui/AddPropertyModal';
+import Button from '../../components/ui/Button';
+
 import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
 import debounce from 'lodash/debounce';
@@ -52,10 +57,18 @@ const getStatusBadgeColor = (status: string) => {
 };
 
 const BuySellRequestPage: React.FC = () => {
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
+  const [refreshFlag, setRefreshFlag] = useState(false); // To trigger table refresh after adding property
+
+  // ...existing state
+
   const [requests, setRequests] = useState<ContactRequest[]>([]);
+const [propertyImages, setPropertyImages] = useState<Record<string, string>>({});
   const [selectedRequest, setSelectedRequest] = useState<ContactRequest | null>(null);
+
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -79,6 +92,9 @@ const BuySellRequestPage: React.FC = () => {
     direction: 'next' | 'prev' | 'first' = 'first',
     filters: { name?: string; email?: string; phone?: string; status?: string } = {}
   ) => {
+    // Refresh on new property add
+    if (refreshFlag) setRefreshFlag(false);
+
     if (!currentUser || isLoadingAuth) return;
 
     console.log(`[DEBUG] ContactRequestsPage: Fetching requests for page: ${page} | Direction: ${direction}`);
@@ -129,17 +145,42 @@ const BuySellRequestPage: React.FC = () => {
       setRequests(data);
       setHasMore(data.length === rowsPerPage);
 
-      const newLastVisible = snapshot.docs[snapshot.docs.length - 1];
-      if (direction === 'next' && newLastVisible) {
-        setPrevCursors((prev) => [...prev.slice(0, page), lastVisible].filter((cursor): cursor is DocumentSnapshot => cursor !== null));
-        setLastVisible(newLastVisible);
-      } else if (direction === 'prev') {
-        setLastVisible(prevCursors[page - 1] || null);
-        setPrevCursors((prev) => prev.slice(0, page - 1));
+      // Fetch property images for each request
+      const propertyIds = data.map((req) => req.propertyId).filter(Boolean);
+      if (propertyIds.length > 0) {
+        const images: Record<string, string> = {};
+        await Promise.all(
+          propertyIds.map(async (propertyId) => {
+            try {
+              const propSnap = await getDoc(doc(db, 'properties', propertyId));
+              if (propSnap.exists()) {
+                const propData = propSnap.data();
+                const imageArr = propData.imageUrls || propData.photos || [];
+                if (Array.isArray(imageArr) && imageArr.length > 0) {
+                  images[propertyId] = imageArr[0];
+                }
+              }
+            } catch (e) {
+              // Ignore errors for missing properties
+            }
+          })
+        );
+        setPropertyImages(images);
       } else {
-        setLastVisible(newLastVisible || null);
-        setPrevCursors([]);
+        setPropertyImages({});
       }
+
+      const newLastVisible = snapshot.docs[snapshot.docs.length - 1];
+if (direction === 'next' && newLastVisible) {
+  setPrevCursors((prev) => [...prev.slice(0, currentPage), lastVisible].filter((cursor): cursor is DocumentSnapshot => cursor !== null));
+  setLastVisible(newLastVisible);
+} else if (direction === 'prev') {
+  setLastVisible(prevCursors[page] || null);
+  setPrevCursors((prev) => prev.slice(0, page));
+} else if (direction === 'first') {
+  setLastVisible(newLastVisible || null);
+  setPrevCursors([]);
+}
     } catch (error) {
       console.error('[DEBUG] ContactRequestsPage: Error fetching contact requests:', error);
       setError('Failed to fetch contact requests. Please try again.');
@@ -188,12 +229,11 @@ const BuySellRequestPage: React.FC = () => {
   };
 
   const openInfoModal = (request: ContactRequest) => {
-    console.log('[DEBUG] ContactRequestsPage: Opening info modal for request:', request.id);
     setSelectedRequest(request);
     setIsInfoOpen(true);
   };
 
-  const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setUpdateFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -257,7 +297,17 @@ const BuySellRequestPage: React.FC = () => {
   return (
     <div className="p-6 bg-white min-h-screen shadow-lg rounded-lg">
       {error && <p className="text-red-600 mb-4">{error}</p>}
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-5 border-b-2 border-gray-200 pb-2">Contact Requests</h1>
+      <div className="flex justify-between items-center mb-5">
+        <h1 className="text-2xl font-extrabold text-gray-900 border-b-2 border-gray-200 pb-2">Contact Requests</h1>
+        <Button
+          variant="primary"
+          size="md"
+          leftIcon={<Plus size={18} />}
+          onClick={() => setIsAddPropertyOpen(true)}
+        >
+          Add Property
+        </Button>
+      </div>
 
       {/* Summary Card */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -320,109 +370,79 @@ const BuySellRequestPage: React.FC = () => {
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         {loading ? (
           <p className="text-center text-gray-600 p-4">Fetching requests...</p>
-        ) : requests.length === 0 ? (
-          <p className="text-center text-gray-600 p-4">No contact requests found.</p>
         ) : (
           <PaginatedTable
-            columns={[
-              { key: 'name', label: 'Name' },
-              { key: 'email', label: 'Email' },
-              { key: 'phone', label: 'Phone' },
-              { key: 'propertyType', label: 'Property Type' },
-              { key: 'status', label: 'Status' },
-              { key: 'timestamp', label: 'Submitted At' },
-              { key: 'actions', label: 'Actions' },
-            ]}
-            data={requests}
+            columns={[]}
+            data={requests.length === 0 ? [{} as ContactRequest] : requests}
             currentPage={currentPage}
             onPageChange={handlePageChange}
             hasMore={hasMore}
-            renderRow={(request) => (
-              <>
-                <td className="p-2">
-                  <span className="text-gray-900">{request.name}</span>
-                </td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1 text-gray-600">
-                    <Mail size={14} />
-                    <span>{request.email}</span>
+            containerClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            renderRow={(request) => {
+              // If no requests, show empty message
+              if (!request || !request.id) {
+                return <div className="col-span-full text-center text-gray-600 p-4">No contact requests found.</div>;
+              }
+              const req = request as ContactRequest;
+              return (
+                <div key={req.id} className="bg-white border rounded-lg shadow-md overflow-hidden flex flex-col">
+                  <img
+                    src={
+                      (req.propertyId && propertyImages[req.propertyId]) ||
+                      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
+                    }
+                    alt="Property"
+                    className="h-40 w-full object-cover bg-gray-100"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80";
+                    }}
+                  />
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="font-bold text-lg text-gray-900 mb-1">{req.name}</div>
+                    <div className="text-gray-600 text-sm mb-1">{req.propertyType || 'Property'}</div>
+                    <div className="text-gray-700 mb-2">
+                      <span className="block"><Mail size={14} className="inline mr-1" /> {req.email}</span>
+                      <span className="block"><Phone size={14} className="inline mr-1" /> {req.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(req.status)}`}>{req.status}</span>
+                      <span className="flex items-center text-gray-500 text-xs"><CalendarDays size={14} className="mr-1" />{format(req.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</span>
+                    </div>
+                    <div className="text-gray-500 text-xs mb-2">Submitted by: {req.submittedBy}</div>
+                    <div className="flex gap-2 mt-auto">
+                      <button
+                        aria-label="View Request Info"
+                        className="flex-1 px-3 py-2 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 text-sm font-medium"
+                        onClick={() => openInfoModal(req)}
+                      >
+                        <Info size={16} className="inline mr-1" /> Info
+                      </button>
+                      <button
+                        aria-label="Edit Request"
+                        className="flex-1 px-3 py-2 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 text-sm font-medium"
+                        onClick={() => openEditModal(req)}
+                      >
+                        <Pencil size={16} className="inline mr-1" /> Edit
+                      </button>
+                    </div>
                   </div>
-                </td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1 text-gray-600">
-                    <Phone size={14} />
-                    <span>{request.phone}</span>
-                  </div>
-                </td>
-                <td className="p-2">
-                  <span className="text-blue-700">{request.propertyType || '—'}</span>
-                </td>
-                <td className="p-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(request.status)}`}>
-                    {request.status}
-                  </span>
-                </td>
-                <td className="p-2">
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <CalendarDays size={14} />
-                    <span>{format(request.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</span>
-                  </div>
-                </td>
-                <td className="p-2 flex gap-2">
-                  <button
-                    aria-label="View Request Info"
-                    className="text-blue-600 hover:text-blue-800"
-                    onClick={() => openInfoModal(request)}
-                  >
-                    <Info size={18} />
-                  </button>
-                  <button
-                    aria-label="Edit Request"
-                    className="text-yellow-600 hover:text-yellow-800"
-                    onClick={() => openEditModal(request)}
-                  >
-                    <Pencil size={18} />
-                  </button>
-                </td>
-              </>
-            )}
+                </div>
+              );
+            }}
           />
         )}
-      </div>
 
-      {/* Modals */}
-      <Modal isOpen={isInfoOpen} onClose={() => setIsInfoOpen(false)} title="Contact Request Info">
-        {selectedRequest && (
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Request Details</h3>
-              <p><strong>Name:</strong> {selectedRequest.name}</p>
-              <p><strong>Email:</strong> {selectedRequest.email}</p>
-              <p><strong>Phone:</strong> {selectedRequest.phone}</p>
-              <p><strong>Property Type:</strong> {selectedRequest.propertyType}</p>
-              <p><strong>Property ID:</strong> {selectedRequest.propertyId}</p>
-              <p><strong>Status:</strong> {selectedRequest.status}</p>
-              <p><strong>Message:</strong> {selectedRequest.message}</p>
-              <p><strong>Submitted By:</strong> {selectedRequest.submittedBy}</p>
-              <p><strong>Submitted At:</strong> {format(selectedRequest.timestamp.toDate(), 'dd MMM yyyy, hh:mm a')}</p>
-              <p><strong>Updated At:</strong> {selectedRequest.updatedAt && typeof selectedRequest.updatedAt.toDate === 'function' ? format(selectedRequest.updatedAt.toDate(), 'dd MMM yyyy, hh:mm a') : '—'}</p>
-            </div>
-            <div className="flex justify-end">
-              <button
-                className="px-3 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
-                onClick={() => setIsInfoOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {isInfoOpen && selectedRequest && (
+        <BuySellRequestPopupPanel
+          requestId={selectedRequest.id}
+          onClose={() => setIsInfoOpen(false)}
+        />
+      )}
 
       {selectedRequest && (
         <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Update Contact Request">
           <form onSubmit={(e) => { e.preventDefault(); handleRequestUpdate(); }} className="space-y-3">
-            <div>
+            
               <label className="block text-sm font-medium text-gray-700">Name</label>
               <input
                 type="text"
@@ -431,9 +451,8 @@ const BuySellRequestPage: React.FC = () => {
                 onChange={handleUpdateFormChange}
                 className="w-full mt-1 p-2 border border-gray-200 rounded-md"
               />
-            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-gray-700">Email</label>
               <input
                 type="email"
                 name="email"
@@ -486,6 +505,39 @@ const BuySellRequestPage: React.FC = () => {
         </Modal>
       )}
     </div>
+    <AddPropertyModal
+      isOpen={isAddPropertyOpen}
+      onClose={() => setIsAddPropertyOpen(false)}
+      onSave={async (property) => {
+        // Add to 'properties' collection
+        const detailedAddress = { street: property.street, landmark: property.landmark };
+        const propertyDoc = await collection(db, 'properties');
+        const propRef = await (await import('firebase/firestore')).addDoc(propertyDoc, {
+          name: property.name,
+          propertyType: property.propertyType,
+          detailedAddress,
+          imageUrls: property.imageUrls,
+          assignedEmployee: property.assignedEmployee,
+          status: property.status,
+          phone: property.phone,
+          email: property.email,
+          timestamp: Timestamp.now(),
+        });
+        // Add to 'contact_requests' collection
+        const contactDoc = await collection(db, 'contact_requests');
+        await (await import('firebase/firestore')).addDoc(contactDoc, {
+          propertyId: propRef.id,
+          name: property.name,
+          email: property.email,
+          phone: property.phone,
+          message: property.message,
+          status: 'pending',
+          timestamp: Timestamp.now(),
+        });
+        setRefreshFlag(true);
+      }}
+    />
+  </div>
   );
 };
 

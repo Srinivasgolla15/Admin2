@@ -29,6 +29,22 @@ export const PlatformAuditLog = async ({
     return;
   }
 
+  // Recursively replace undefined with null (Firestore rejects undefined in any nested field)
+  const sanitizeForFirestore = (value: any): any => {
+    if (value === undefined) return null;
+    if (value === null) return null;
+    if (Array.isArray(value)) return value.map(sanitizeForFirestore);
+    if (value instanceof Date) return Timestamp.fromDate(value);
+    if (typeof value === 'object') {
+      const result: Record<string, any> = {};
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = sanitizeForFirestore(v);
+      }
+      return result;
+    }
+    return value;
+  };
+
   try {
     await addDoc(collection(db, 'platformAuditLogs'), {
       timestamp,
@@ -42,7 +58,7 @@ export const PlatformAuditLog = async ({
       targetEntityDescription,
       actionDescription,
       source: 'Platform Audit',
-      details,
+      details: sanitizeForFirestore(details),
     });
 
     console.log('[AuditLogger] Audit log recorded.');

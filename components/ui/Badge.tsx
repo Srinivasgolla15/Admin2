@@ -1,12 +1,21 @@
 // components/ui/Badge.tsx
 const Badge = ({ status }: { status: string }) => {
-  const color = {
-    verified: 'bg-green-500',
-    pending: 'bg-yellow-500',
-    rejected: 'bg-red-500',
-  }[status] || 'bg-gray-400';
-
-  return <span className={`px-2 py-0.5 rounded text-white text-xs ${color}`}>{status}</span>;
+  // Match SubscriptionsPage badge color scheme
+  let classes = 'px-2 py-0.5 rounded-full text-xs font-medium ';
+  switch (status) {
+    case 'pending':
+      classes += 'bg-yellow-100 text-yellow-800';
+      break;
+    case 'verified':
+      classes += 'bg-green-100 text-green-800';
+      break;
+    case 'rejected':
+      classes += 'bg-red-100 text-red-800';
+      break;
+    default:
+      classes += 'bg-gray-200 text-gray-800';
+  }
+  return <span className={classes}>{status}</span>;
 };
 
 export default Badge;

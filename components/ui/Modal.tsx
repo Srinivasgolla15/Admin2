@@ -9,6 +9,7 @@ interface ModalProps {
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   footer?: React.ReactNode;
+  closeOnOverlayClick?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -18,6 +19,7 @@ const Modal: React.FC<ModalProps> = ({
   children,
   size = 'md',
   footer,
+  closeOnOverlayClick = true,
 }) => {
   const sizeClasses = {
     sm: 'max-w-sm',
@@ -34,7 +36,9 @@ const Modal: React.FC<ModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6"
-          onClick={onClose}
+          onClick={() => {
+            if (closeOnOverlayClick) onClose();
+          }}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
