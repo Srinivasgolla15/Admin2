@@ -15,10 +15,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { format } from 'date-fns';
-import { CalendarDays, Mail, Phone, Pencil, Info } from 'lucide-react';
+import { CalendarDays, Mail, Phone, Pencil, Info, Plus } from 'lucide-react';
 import BuySellRequestPopupPanel from '../../components/ui/BuySellRequestPopupPanel';
 import PaginatedTable from '../../components/ui/PaginatedTable';
 import Modal from '../../components/ui/Modal';
+import AddPropertyModal from '../../components/ui/AddPropertyModal';
+import Button from '../../components/ui/Button';
 
 import { PlatformAuditLog } from '../../utils/auditLogger';
 import { useAuth } from '../../contexts/AuthContext';
@@ -55,6 +57,11 @@ const getStatusBadgeColor = (status: string) => {
 };
 
 const BuySellRequestPage: React.FC = () => {
+  const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
+  const [refreshFlag, setRefreshFlag] = useState(false); // To trigger table refresh after adding property
+
+  // ...existing state
+
   const [requests, setRequests] = useState<ContactRequest[]>([]);
 const [propertyImages, setPropertyImages] = useState<Record<string, string>>({});
   const [selectedRequest, setSelectedRequest] = useState<ContactRequest | null>(null);
@@ -85,6 +92,9 @@ const [propertyImages, setPropertyImages] = useState<Record<string, string>>({})
     direction: 'next' | 'prev' | 'first' = 'first',
     filters: { name?: string; email?: string; phone?: string; status?: string } = {}
   ) => {
+    // Refresh on new property add
+    if (refreshFlag) setRefreshFlag(false);
+
     if (!currentUser || isLoadingAuth) return;
 
     console.log(`[DEBUG] ContactRequestsPage: Fetching requests for page: ${page} | Direction: ${direction}`);
@@ -287,7 +297,17 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
   return (
     <div className="p-6 bg-white min-h-screen shadow-lg rounded-lg">
       {error && <p className="text-red-600 mb-4">{error}</p>}
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-5 border-b-2 border-gray-200 pb-2">Contact Requests</h1>
+      <div className="flex justify-between items-center mb-5">
+        <h1 className="text-2xl font-extrabold text-gray-900 border-b-2 border-gray-200 pb-2">Contact Requests</h1>
+        <Button
+          variant="primary"
+          size="md"
+          leftIcon={<Plus size={18} />}
+          onClick={() => setIsAddPropertyOpen(true)}
+        >
+          Add Property
+        </Button>
+      </div>
 
       {/* Summary Card */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -422,7 +442,7 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
       {selectedRequest && (
         <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Update Contact Request">
           <form onSubmit={(e) => { e.preventDefault(); handleRequestUpdate(); }} className="space-y-3">
-            // ... (rest of the code remains the same)
+            
               <label className="block text-sm font-medium text-gray-700">Name</label>
               <input
                 type="text"
@@ -485,7 +505,38 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
         </Modal>
       )}
     </div>
-    {/* Close main wrapper div */}
+    <AddPropertyModal
+      isOpen={isAddPropertyOpen}
+      onClose={() => setIsAddPropertyOpen(false)}
+      onSave={async (property) => {
+        // Add to 'properties' collection
+        const detailedAddress = { street: property.street, landmark: property.landmark };
+        const propertyDoc = await collection(db, 'properties');
+        const propRef = await (await import('firebase/firestore')).addDoc(propertyDoc, {
+          name: property.name,
+          propertyType: property.propertyType,
+          detailedAddress,
+          imageUrls: property.imageUrls,
+          assignedEmployee: property.assignedEmployee,
+          status: property.status,
+          phone: property.phone,
+          email: property.email,
+          timestamp: Timestamp.now(),
+        });
+        // Add to 'contact_requests' collection
+        const contactDoc = await collection(db, 'contact_requests');
+        await (await import('firebase/firestore')).addDoc(contactDoc, {
+          propertyId: propRef.id,
+          name: property.name,
+          email: property.email,
+          phone: property.phone,
+          message: property.message,
+          status: 'pending',
+          timestamp: Timestamp.now(),
+        });
+        setRefreshFlag(true);
+      }}
+    />
   </div>
   );
 };
