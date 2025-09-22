@@ -12,33 +12,36 @@ import { toast } from 'react-toastify';
 interface Property {
   id?: string;
   address: string;
-  areaSize: string;
+  areaSize: number;
   city: string;
   description: string;
-  location: string;
-  phoneNo: string;
+  location?: string;
+  phoneNo?: string;
+  landmark?: string;
+  street?: string;
   pincode: string;
   photos: string[];
   price: number;
   rentPrice?: number;
-  propertyType: string;
-  service: 'sell' | 'rent';
+  propertyType: 'ApartmentProperty' | 'PlotProperty' | 'CommercialSpaceProperty';
+  service: 'buy' | 'rent';
   status: string;
   submittedBy: string;
   userId: string;
-  buySellType?: string | null;
-  rentType?: string | null;
-  // Apartment specific fields
-  apartmentType?: string;
-  balcony?: string;
-  bathroom?: string;
-  bedrooms?: string;
-  floor?: string;
-  furnishedType?: string;
-  parkingArea?: string;
-  ageOfProperty?: string;
-  aroundThisProperty?: string;
-  squareFeet?: string;
+  buySellType: 'Sell'| null;
+  rentType: 'Rent'| null;
+  // Property details
+  apartmentType?: string;  // e.g., "3BHK"
+  balcony?: number;
+  bathroom: number;
+  bedrooms: number;
+  floor?: string;  // e.g., "1/336"
+  furnishedType?: string;  // e.g., "Fully-furnished"
+  parkingArea?: string;  // e.g., "Yes"
+  ageOfProperty?: string;  // e.g., "2"
+  aroundThisProperty?: string;  // e.g., "school,hospital,metro station"
+  squareFeet: number;
+  timestamp?: any;  // Firestore timestamp
 }
 
 const SellRentProperties = () => {
@@ -51,15 +54,17 @@ const SellRentProperties = () => {
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [ceoPropertiesCount, setCeoPropertiesCount] = useState(0);
-  const [formData, setFormData] = useState<Partial<Property>>({
-    service: 'sell',
+  const [formData, setFormData] = useState<Partial<Property>>(() => ({
+    service: 'buy',
     status: 'verified',
     submittedBy: 'ceo@estateeasy.com',
     userId: 'admin',
     photos: [],
-    buySellType: 'sell',
-    rentType: null
-  });
+    buySellType: 'Sell',
+    rentType: null,
+    price: undefined,
+    rentPrice: undefined
+  }));
   const [uploading, setUploading] = useState(false);
   const [showMoreImages, setShowMoreImages] = useState(false);
   const { currentUser } = useAuth();
@@ -114,9 +119,58 @@ const SellRentProperties = () => {
     setIsViewModalOpen(true);
   };
 
+  // List of numeric fields that should be converted to numbers
+  const numericFields = [
+    'balcony', 'bathroom', 'bedrooms', 'areaSize', 'squareFeet', 
+    'price', 'rentPrice'
+  ];
+
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Handle service type changes separately
+    if (name === 'service') {
+      setFormData(prev => {
+        if (value === 'buy') {
+          // When switching to buy, clear rentType and rentPrice
+          const newData = {
+            ...prev,
+            service: 'buy' as const,
+            buySellType: 'Sell',  // Set default value for buySellType
+            rentType: null,       // Clear rentType
+            rentPrice: undefined  // Clear rentPrice
+          };
+          console.log('Switching to buy:', newData);
+          return newData;
+        } else if (value === 'rent') {
+          // When switching to rent, clear buySellType and price
+          const newData = {
+            ...prev,
+            service: 'rent' as const,
+            buySellType: null,   // Clear buySellType
+            rentType: 'Rent',    // Set default value for rentType
+            price: undefined     // Clear price
+          };
+          console.log('Switching to rent:', newData);
+          return newData;
+        }
+        return { ...prev, [name]: value };
+      });
+      return;
+    }
+    
+    // For numeric fields
+    if (numericFields.includes(name)) {
+      const numValue = value === '' ? undefined : Number(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numValue
+      }));
+      return;
+    }
+    
+    // For all other fields
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -162,37 +216,73 @@ const SellRentProperties = () => {
   };
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Helper function to remove undefined values from an object
+  const removeUndefined = (obj: any) => {
+    const newObj: any = {};
+    Object.keys(obj).forEach(key => {
+      if (obj[key] !== undefined) {
+        newObj[key] = obj[key];
+      }
+    });
+    return newObj;
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (!formData.address || !formData.city || !formData.pincode) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     try {
-      const propertyData: Property = {
-        ...formData as Property,
+      setUploading(true);
+      
+      // Prepare the property data
+      const propertyData = {
+        ...formData,
         timestamp: serverTimestamp(),
         status: 'verified',
         submittedBy: 'ceo@estateeasy.com',
         userId: 'admin',
-        buySellType: formData.service === 'sell' ? 'sell' : null,
+        buySellType: formData.service === 'buy' ? 'Sell' : null,
         rentType: formData.service === 'rent' ? 'Rent' : null,
+        // Ensure required fields are set
+        address: formData.address,
+        city: formData.city,
+        pincode: formData.pincode,
+        propertyType: formData.propertyType || 'ApartmentProperty',
+        service: formData.service || 'buy',
+        photos: formData.photos || [],
+        // Set price or rentPrice based on service type
+        ...(formData.service === 'buy' ? { 
+          price: formData.price || 0,
+          rentPrice: undefined 
+        } : { 
+          rentPrice: formData.rentPrice || 0,
+          price: undefined 
+        })
       };
+      
+      // Remove undefined values before saving to Firestore
+      const cleanData = removeUndefined(propertyData);
 
       if (editingProperty && editingProperty.id) {
         // Update existing property
-        await setDoc(doc(db, 'properties', editingProperty.id), propertyData, { merge: true });
+        await setDoc(doc(db, 'properties', editingProperty.id), cleanData, { merge: true });
       } else {
         // Add new property
         const docRef = doc(collection(db, 'properties'));
-        await setDoc(docRef, propertyData);
+        await setDoc(docRef, cleanData);
       }
 
       // Reset form and refresh
       setFormData({
-        service: 'sell',
+        service: 'buy',
         status: 'verified',
         submittedBy: 'ceo@estateeasy.com',
         userId: 'admin',
         photos: [],
-        buySellType: 'sell',
+        buySellType: 'Sell',
         rentType: null
       });
       setEditingProperty(null);
@@ -208,9 +298,9 @@ const SellRentProperties = () => {
     setEditingProperty(property);
     setFormData({
       ...property,
-      service: property.service || 'sell',
-      buySellType: property.buySellType || (property.service === 'sell' ? 'sell' : null),
-      rentType: property.rentType || (property.service === 'rent' ? 'Rent' : null)
+      service: property.service,
+      buySellType: property.buySellType,
+      rentType: property.rentType
     });
     setIsModalOpen(true);
   };
@@ -218,7 +308,7 @@ const SellRentProperties = () => {
   // Render form fields based on property type
   const renderPropertyFields = () => {
     const isApartment = formData.propertyType === 'ApartmentProperty';
-    const isSell = formData.service === 'sell';
+    const isSell = formData.service === 'buy';
 
     return (
       <div className="space-y-4">
@@ -459,9 +549,9 @@ const SellRentProperties = () => {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="">Select</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3+</option>
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3+</option>
                 </select>
               </div>
 
@@ -518,12 +608,12 @@ const SellRentProperties = () => {
               onClick={() => {
                 setEditingProperty(null);
                 setFormData({
-                  service: 'sell',
+                  service: 'buy',
                   status: 'verified',
                   submittedBy: 'ceo@estateeasy.com',
                   userId: 'admin',
                   photos: [],
-                  buySellType: 'sell',
+                  buySellType: 'Sell',
                   rentType: null
                 });
                 setIsModalOpen(true);
@@ -559,12 +649,12 @@ const SellRentProperties = () => {
               onClick={() => {
                 setEditingProperty(null);
                 setFormData({
-                  service: 'sell',
+                  service: 'buy',
                   status: 'verified',
                   submittedBy: 'ceo@estateeasy.com',
                   userId: 'admin',
                   photos: [],
-                  buySellType: 'sell',
+                  buySellType: 'Sell',
                   rentType: null
                 });
                 setIsModalOpen(true);
@@ -618,7 +708,7 @@ const SellRentProperties = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-blue-600">
-                      {property.service === 'sell' 
+                      {property.service === 'buy' 
                         ? `₹${Number(property.price).toLocaleString()}` 
                         : `₹${Number(property.rentPrice).toLocaleString()}/mo`}
                     </p>
@@ -873,7 +963,7 @@ const SellRentProperties = () => {
         onClose={() => setIsModalOpen(false)}
         title={`${editingProperty ? 'Edit' : 'Add'} Property`}
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSave}>
           {renderPropertyFields()}
           
           <div className="mt-6">
