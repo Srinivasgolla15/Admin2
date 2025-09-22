@@ -3,7 +3,7 @@ import { collection, query, onSnapshot, orderBy, limit, startAfter, DocumentSnap
 import { db } from '../../services/firebase';
 import { Payment } from '../../types';
 import { format } from 'date-fns';
-import { Eye, Pencil } from 'lucide-react';
+import { Info, Pencil } from 'lucide-react';
 import PaginatedTable from '../../components/ui/PaginatedTable';
 import Modal from '../../components/ui/Modal';
 import EditEntityModal from '../../components/ui/EditEntityModal';
@@ -295,8 +295,9 @@ const SubscriptionsPage: React.FC = () => {
             { key: 'subscribedAt', label: 'Subscribed At' },
             { key: 'startDate', label: 'Start Date' },
             { key: 'endDate', label: 'End Date' },
-            { key: 'actions', label: 'Actions' },
-            { key: 'amount', label: 'amount'}
+            { key: 'amount', label: 'amount'},
+            { key: 'actions', label: 'Actions' }
+            
           ]}
           data={payments}
           currentPage={currentPage}
@@ -322,23 +323,25 @@ const SubscriptionsPage: React.FC = () => {
               <td className="px-4 py-2">{payment.subscribedAt ? format(payment.subscribedAt, 'dd MMM yyyy') : '-'}</td>
               <td className="px-4 py-2">{payment.startDate ? format(payment.startDate, 'dd MMM yyyy') : '-'}</td>
               <td className="px-4 py-2">{payment.endDate ? format(payment.endDate, 'dd MMM yyyy') : '-'}</td>
+              <td className="px-4 py-2">{payment.amount}</td>
               <td className="px-4 py-2 flex gap-2">
-                <button
-                  aria-label="View Payment Details"
-                  className="text-blue-600 hover:text-blue-800 transition"
-                  onClick={() => openInfoModal(payment)}
-                >
-                  <Eye size={18} />
-                </button>
-                <button
+              <button
                   aria-label="Edit Payment"
                   className="text-yellow-600 hover:text-yellow-800 transition"
                   onClick={() => openEditModal(payment)}
                 >
                   <Pencil size={18} />
                 </button>
+                <button
+                  aria-label="View Payment Details"
+                  className="text-blue-600 hover:text-blue-800 transition"
+                  onClick={() => openInfoModal(payment)}
+                >
+                  <Info size={18} />
+                </button>
+                
               </td>
-              <td className="px-4 py-2">{payment.amount}</td>
+              
             </>
           )}
         />
@@ -348,52 +351,108 @@ const SubscriptionsPage: React.FC = () => {
         isOpen={isInfoOpen}
         onClose={() => setIsInfoOpen(false)}
         title="Payment Details"
-        size="lg"
+        size="xl"
       >
         {selectedPayment ? (
-          <div className="space-y-4 text-sm text-slate-700 dark:text-slate-200">
-            <p><strong>Submitted By:</strong> {selectedPayment.submittedBy}</p>
-            <p><strong>Service Type:</strong> {selectedPayment.serviceType}</p>
-            <p><strong>Number of Properties:</strong> {selectedPayment.numberOfProperties}</p>
-            <p><strong>Status:</strong> <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${selectedPayment.status === 'pending'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : selectedPayment.status === 'verified'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-            >
-              {selectedPayment.status}
-            </span></p>
-            <p><strong>amount:</strong>{selectedPayment.amount}</p>
-            <p><strong>Subscribed At:</strong> {selectedPayment.subscribedAt ? format(selectedPayment.subscribedAt, 'dd MMM yyyy HH:mm') : '-'}</p>
-            <p><strong>Start Date:</strong> {selectedPayment.startDate ? format(selectedPayment.startDate, 'dd MMM yyyy') : '-'}</p>
-            <p><strong>End Date:</strong> {selectedPayment.endDate ? format(selectedPayment.endDate, 'dd MMM yyyy') : '-'}</p>
-            <p><strong>Updated At:</strong> {selectedPayment.updatedAt ? format(selectedPayment.updatedAt, 'dd MMM yyyy HH:mm') : '-'}</p>
-            {selectedPayment.propertyIds?.length > 0 && (
-              <div>
-                <strong>Property IDs:</strong>
-                <ul className="list-disc list-inside ml-4">
-                  {selectedPayment.propertyIds.map((id, idx) => (
-                    <li key={idx}>{id}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <div className="space-y-6">
+            {/* Transaction Screenshot */}
             {selectedPayment.transactionScreenshot && (
-              <div>
-                <img
-                  src={selectedPayment.transactionScreenshot}
-                  alt="Transaction Screenshot"
-                  className="w-24 h-24 object-cover rounded cursor-pointer hover:scale-105 transition"
-                  onClick={() => {
-                    setSelectedImage(selectedPayment.transactionScreenshot);
-                    setIsInfoOpen(false);
-                    setIsImageModalOpen(true);
-                  }}
-                />
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+                <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100 border-b pb-2">
+                  Transaction Proof
+                </h3>
+                <div className="relative">
+                  <img 
+                    src={selectedPayment.transactionScreenshot}
+                    alt="Transaction Screenshot"
+                    className="max-w-full h-auto rounded border border-slate-200 dark:border-slate-700 mx-auto cursor-pointer"
+                    style={{ maxHeight: '500px' }}
+                    onClick={() => {
+                      setSelectedImage(selectedPayment.transactionScreenshot);
+                      setIsInfoOpen(false);
+                      setIsImageModalOpen(true);
+                    }}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = 'none';
+                      const container = img.parentElement;
+                      if (container) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'p-4 bg-slate-100 dark:bg-slate-700 rounded text-center';
+                        errorDiv.innerHTML = `
+                          <p class="text-sm text-slate-600 dark:text-slate-300">
+                            Could not load image. 
+                            <a href="${img.src}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 break-all">
+                              Open image in new tab
+                            </a>
+                          </p>
+                        `;
+                        container.appendChild(errorDiv);
+                      }
+                    }}
+                  />
+                  <button 
+                    onClick={() => {
+                      setSelectedImage(selectedPayment.transactionScreenshot);
+                      setIsInfoOpen(false);
+                      setIsImageModalOpen(true);
+                    }}
+                    className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 flex items-center justify-center"
+                    title="View full size"
+                    style={{ width: '32px', height: '32px' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
+
+            {/* Payment Details */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100 border-b pb-2">
+                Payment Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-2">
+                  <p><strong>Submitted By:</strong> {selectedPayment.submittedBy || '-'}</p>
+                  <p><strong>Service Type:</strong> {selectedPayment.serviceType || '-'}</p>
+                  <p><strong>Number of Properties:</strong> {selectedPayment.numberOfProperties || '0'}</p>
+                  <p><strong>Status:</strong> 
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedPayment.status === 'pending' 
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        : selectedPayment.status === 'verified' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                    }`}>
+                      {selectedPayment.status}
+                    </span>
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p><strong>Amount:</strong> ₹{selectedPayment.amount?.toLocaleString('en-IN') || '0'}</p>
+                  <p><strong>Subscribed At:</strong> {selectedPayment.subscribedAt ? format(selectedPayment.subscribedAt, 'dd MMM yyyy, hh:mm a') : '-'}</p>
+                  <p><strong>Start Date:</strong> {selectedPayment.startDate ? format(selectedPayment.startDate, 'dd MMM yyyy') : '-'}</p>
+                  <p><strong>End Date:</strong> {selectedPayment.endDate ? format(selectedPayment.endDate, 'dd MMM yyyy') : '-'}</p>
+                  <p><strong>Updated At:</strong> {selectedPayment.updatedAt ? format(selectedPayment.updatedAt, 'dd MMM yyyy, hh:mm a') : '-'}</p>
+                </div>
+              </div>
+              
+              {selectedPayment.propertyIds?.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <h4 className="font-medium mb-2">Property IDs:</h4>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded">
+                    <ul className="list-disc list-inside space-y-1">
+                      {selectedPayment.propertyIds.map((id, idx) => (
+                        <li key={idx} className="text-sm">{id}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <p>No payment selected.</p>

@@ -37,24 +37,27 @@ const AllPropertiesPage: React.FC = () => {
     setLoading(true);
     try {
       let q;
+      const baseQuery = query(
+        collection(db, 'properties'),
+        where('status', '==', 'verified'),
+        orderBy('timestamp')
+      );
+
       if (direction === 'next' && lastVisible) {
         q = query(
-          collection(db, 'properties'),
-          orderBy('timestamp'),
+          baseQuery,
           startAfter(lastVisible),
           limit(rowsPerPage)
         );
       } else if (direction === 'prev' && prevCursors[page - 1]) {
         q = query(
-          collection(db, 'properties'),
-          orderBy('timestamp'),
+          baseQuery,
           startAfter(prevCursors[page - 1]),
           limit(rowsPerPage)
         );
       } else {
         q = query(
-          collection(db, 'properties'),
-          orderBy('timestamp'),
+          baseQuery,
           limit(rowsPerPage)
         );
       }
@@ -115,6 +118,7 @@ const AllPropertiesPage: React.FC = () => {
     try {
       const q = query(
         collection(db, 'properties'),
+        where('status', '==', 'verified'),
         orderBy('name'),
         where('name', '>=', term.toLowerCase()),
         where('name', '<=', term.toLowerCase() + '\uf8ff')

@@ -3,15 +3,28 @@ import Modal from './Modal';
 import { storage } from '../../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-interface PropertyDetails {
-  name: string;
+export interface PropertyDetails {
+  id?: string;
+  name?: string;
   propertyType: string;
-  street: string;
-  landmark: string;
+  street?: string;
+  landmark?: string;
+  address?: string;
+  areaSize?: number;
+  city?: string;
+  location?: string;
+  phoneNo?: string;
+  photos?: string[];
+  price?: number | null;
+  rentPrice?: number;
+  rentType?: string;
+  service?: string;
+  status: string;
+  submittedBy?: string;
+  timestamp?: any;
+  userId?: string;
   imageUrls: string[];
   assignedEmployee: string;
-  status: string;
-  phone: string;
   email: string;
   message: string;
 }
@@ -20,23 +33,35 @@ interface AddPropertyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (property: PropertyDetails) => Promise<void>;
+  initialData?: Partial<PropertyDetails>;
 }
 
-const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, onSave }) => {
-  const [form, setForm] = useState<PropertyDetails>({
+const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, onSave, initialData = {} }) => {
+  const [form, setForm] = useState<PropertyDetails>(() => ({
     name: '',
-    propertyType: '',
-    street: '',
-    landmark: '',
-    imageUrls: [],
+    propertyType: initialData?.propertyType || '',
+    street: initialData?.address || '',
+    landmark: initialData?.location || '',
+    imageUrls: initialData?.photos || [],
+    photos: initialData?.photos || [],
     assignedEmployee: '',
-    status: 'active',
-    phone: '',
-    email: '',
+    status: initialData?.status || 'active',
+    phoneNo: initialData?.phoneNo || '',
+    email: initialData?.submittedBy || '',
     message: '',
-  });
+    price: initialData?.price || null,
+    rentPrice: initialData?.rentPrice,
+    rentType: initialData?.rentType,
+    service: initialData?.service,
+    address: initialData?.address,
+    areaSize: initialData?.areaSize,
+    city: initialData?.city,
+    location: initialData?.location,
+    submittedBy: initialData?.submittedBy,
+    userId: initialData?.userId,
+    ...initialData
+  }));
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -60,7 +85,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
     setSaving(true);
     let imageUrls: string[] = [];
     if (imageFiles.length > 0) {
-      setUploading(true);
       imageUrls = await Promise.all(
         imageFiles.map(async (file) => {
           const storageRef = ref(storage, `sale/${Date.now()}_${file.name}`);
@@ -68,7 +92,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
           return await getDownloadURL(storageRef);
         })
       );
-      setUploading(false);
     }
     await onSave({ ...form, imageUrls });
     setSaving(false);
@@ -79,12 +102,14 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
       street: '',
       landmark: '',
       imageUrls: [],
+      photos: [],
       assignedEmployee: '',
       status: 'active',
-      phone: '',
+      phoneNo: '',
       email: '',
       message: '',
-    });
+      price: null,
+    } as PropertyDetails);
     setImageFiles([]);
   };
 
@@ -107,7 +132,21 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
         </div>
         <div>
           <label className="block text-sm font-medium">Landmark</label>
-          <input name="landmark" value={form.landmark} onChange={handleChange} className="w-full mt-1 p-2 border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
+          <input name="landmark" value={form.landmark || ''} onChange={handleChange} className="w-full mt-1 p-2 border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
+        </div>
+        <div>
+          <label htmlFor="phoneNo" className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Phone
+          </label>
+          <input
+            type="tel"
+            id="phoneNo"
+            name="phoneNo"
+            value={form.phoneNo || ''}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+            required
+          />
         </div>
         <div>
           <label className="block text-sm font-medium">Upload Images</label>
@@ -148,10 +187,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, on
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Phone</label>
-          <input name="phone" value={form.phone} onChange={handleChange} className="w-full mt-1 p-2 border border-slate-200 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100" />
         </div>
         <div>
           <label className="block text-sm font-medium">Email</label>

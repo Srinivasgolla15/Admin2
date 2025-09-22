@@ -522,6 +522,10 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
           phone: property.phone,
           email: property.email,
           timestamp: Timestamp.now(),
+          submittedBy: 'ceo@estateeasy.com',
+          propertyType: property.propertyType, // required field
+          service: property.propertyType, // <-- set service (adjust if you have a separate field)
+          timestamp: Timestamp.now(),
         });
         // Add to 'contact_requests' collection
         const contactDoc = await collection(db, 'contact_requests');
