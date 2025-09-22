@@ -19,8 +19,8 @@ interface Property {
   phoneNo: string;
   pincode: string;
   photos: string[];
-  price: string;
-  rentPrice?: string;
+  price: number;
+  rentPrice?: number;
   propertyType: string;
   service: 'sell' | 'rent';
   status: string;
@@ -61,6 +61,7 @@ const SellRentProperties = () => {
     rentType: null
   });
   const [uploading, setUploading] = useState(false);
+  const [showMoreImages, setShowMoreImages] = useState(false);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -704,7 +705,10 @@ const SellRentProperties = () => {
       {/* Property Details Modal */}
       <Modal
         isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setShowMoreImages(false);
+        }}
         title="Property Details"
         size="max-w-4xl"
       >
@@ -729,7 +733,7 @@ const SellRentProperties = () => {
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2">
-                  {selectedProperty.photos?.slice(1, 4).map((photo, index) => (
+                  {selectedProperty.photos?.slice(1, showMoreImages ? undefined : 4).map((photo, index) => (
                     <div key={index} className="aspect-square bg-gray-100 rounded overflow-hidden">
                       <img src={photo} alt={`Property ${index + 2}`} className="w-full h-full object-cover" />
                     </div>
@@ -744,6 +748,14 @@ const SellRentProperties = () => {
                     ))
                   }
                 </div>
+                {selectedProperty.photos && selectedProperty.photos.length > 4 && !showMoreImages && (
+                  <button
+                    onClick={() => setShowMoreImages(true)}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    + {selectedProperty.photos.length - 4} more images
+                  </button>
+                )}
               </div>
               
               <div className="space-y-4">
