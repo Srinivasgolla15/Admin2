@@ -295,24 +295,54 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
   };
 
   return (
-    <div className="p-6 bg-white min-h-screen shadow-lg rounded-lg">
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-      <div className="flex justify-between items-center mb-5">
-        <h1 className="text-2xl font-extrabold text-gray-900 border-b-2 border-gray-200 pb-2">Contact Requests</h1>
-        <Button
-          variant="primary"
-          size="md"
-          leftIcon={<Plus size={18} />}
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+      
+      {/* Header */}
+      <div className="mb-6 flex flex-col justify-between sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Buy/Sell Requests</h1>
+          <p className="mt-1 text-sm text-gray-500">Manage all property buy/sell requests</p>
+        </div>
+        <button
           onClick={() => setIsAddPropertyOpen(true)}
+          className="mt-4 inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:mt-0"
         >
-          Add Property
-        </Button>
+          <Plus className="-ml-1 mr-2 h-5 w-5" />
+          Add New Request
+        </button>
       </div>
 
-      {/* Summary Card */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="text-md font-semibold text-gray-700">Total Requests</h3>
-        <p className="text-xl font-bold text-indigo-700">{requests.length}</p>
+      {/* Stats Cards */}
+      <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+          <dt className="truncate text-sm font-medium text-gray-500">Total Requests</dt>
+          <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
+            {requests.length}
+          </dd>
+        </div>
+        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+          <dt className="truncate text-sm font-medium text-gray-500">Pending</dt>
+          <dd className="mt-1 text-3xl font-semibold tracking-tight text-yellow-600">
+            {requests.filter(r => r.status === 'pending').length}
+          </dd>
+        </div>
+        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+          <dt className="truncate text-sm font-medium text-gray-500">In Progress</dt>
+          <dd className="mt-1 text-3xl font-semibold tracking-tight text-blue-600">
+            {requests.filter(r => r.status === 'in-progress').length}
+          </dd>
+        </div>
+        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+          <dt className="truncate text-sm font-medium text-gray-500">Completed</dt>
+          <dd className="mt-1 text-3xl font-semibold tracking-tight text-green-600">
+            {requests.filter(r => r.status === 'completed').length}
+          </dd>
+        </div>
       </div>
 
       {/* Filters */}
@@ -518,14 +548,11 @@ const handleUpdateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSele
           detailedAddress,
           imageUrls: property.imageUrls,
           assignedEmployee: property.assignedEmployee,
-          status: property.status,
           phone: property.phone,
           email: property.email,
           timestamp: Timestamp.now(),
           submittedBy: 'ceo@estateeasy.com',
-          propertyType: property.propertyType, // required field
-          service: property.propertyType, // <-- set service (adjust if you have a separate field)
-          timestamp: Timestamp.now(),
+          service: property.propertyType, // Using propertyType as service
         });
         // Add to 'contact_requests' collection
         const contactDoc = await collection(db, 'contact_requests');

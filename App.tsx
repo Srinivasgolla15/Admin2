@@ -15,6 +15,7 @@ const AllClientsPage = lazy(() => import('./pages/clients/AllClientsPage')); // 
 const AllEmployeesPage = lazy(() => import('./pages/employees/AllEmployeesPage')); // Lazy-loaded
 const PlatformUserManagementPage = lazy(() => import('./pages/users/PlatformUserManagementPage')); // Lazy-loaded
 const AllPropertiesPage = lazy(() => import('./pages/properties/AllProperties')); // Lazy-loaded
+const SellRentPropertiesPage = lazy(() => import('./pages/properties/SellRentProperties')); // Lazy-loaded
 const SubscriptionsPage = lazy(() => import('./pages/finance/Subscriptions')); // Lazy-loaded
 const PaymentsPage = lazy(() => import('./pages/finance/Payments')); // Lazy-loaded
 const CallbackRequestsPage = lazy(() => import('./pages/crm/CallbackRequests')); // Lazy-loaded
@@ -132,6 +133,15 @@ const App: React.FC = () => {
                   element={
                     <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
                       <AllPropertiesPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/properties/SellRentProperties"
+                  element={
+                    <ProtectedRoute allowedRoles={[UserRole.SuperAdmin, UserRole.Admin]}>
+                      <SellRentPropertiesPage />
                     </ProtectedRoute>
                   }
                 />
