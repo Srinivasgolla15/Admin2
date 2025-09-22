@@ -83,15 +83,28 @@ const EmployeeTypeahead: React.FC<EmployeeTypeaheadProps> = ({
   }, [input, isFocused]);
 
   const handleSelect = (emp: EmployeeTypeaheadProps['value']) => {
+    // If emp is null or undefined, treat it as an unassign
+    if (!emp) {
+      handleUnassign();
+      return;
+    }
+    
+    // Otherwise, update with the selected employee
     onChange(emp);
-    setInput(emp ? `${emp.name} — ${emp.email}` : '');
+    setInput(`${emp.name} — ${emp.email}`);
     setShowDropdown(false);
     setIsFocused(false);
     inputRef.current?.blur();
   };
 
   const handleUnassign = () => {
-    onChange(null);
+    // Explicitly set all employee fields to empty strings
+    onChange({
+      id: '',
+      name: '',
+      email: '',
+      avatarUrl: ''
+    });
     setInput('');
     setShowDropdown(false);
   };

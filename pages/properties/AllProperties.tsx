@@ -204,16 +204,33 @@ const AllPropertiesPage: React.FC = () => {
     const currentTime = Timestamp.fromDate(new Date());
 
     try {
-      await updateDoc(propertyRef, updatedData);
+      // Create a clean update object with only the fields that have changed
+      const updateObj: Record<string, any> = {};
+      const changes: Record<string, { from: any; to: any }> = {};
 
-      const changes = Object.keys(updatedData).reduce((acc, key) => {
+      // Check each field in updatedData
+      Object.entries(updatedData).forEach(([key, value]) => {
         const oldVal = selectedProperty[key as keyof Property];
-        const newVal = updatedData[key as keyof Property];
-        if (oldVal !== newVal) {
-          acc[key] = { from: oldVal, to: newVal };
+        
+        // Only include changed fields in the update
+        if (JSON.stringify(oldVal) !== JSON.stringify(value)) {
+          updateObj[key] = value;
+          changes[key] = { from: oldVal, to: value };
         }
-        return acc;
-      }, {} as Record<string, { from: any; to: any }>);
+      });
+
+      // If no changes, return early
+      if (Object.keys(updateObj).length === 0) {
+        console.log('No changes detected');
+        setIsEditOpen(false);
+        return;
+      }
+
+      // Add updatedAt timestamp
+      updateObj.updatedAt = currentTime;
+      
+      // Perform the update
+      await updateDoc(propertyRef, updateObj);
 
       if (Object.keys(changes).length > 0) {
         await PlatformAuditLog({
@@ -439,12 +456,13 @@ const AllPropertiesPage: React.FC = () => {
           requiredFields={['name', 'status']}
           onSave={async (updatedData) => {
             // If assignedEmployee is an object from typeahead, denormalize
-            if (typeof updatedData.assignedEmployee === 'object' && updatedData.assignedEmployee !== null) {
+            if (updatedData.assignedEmployee && typeof updatedData.assignedEmployee === 'object' && updatedData.assignedEmployee !== null) {
               updatedData.assignedEmployeeId = updatedData.assignedEmployee.id;
               updatedData.assignedEmployeeName = updatedData.assignedEmployee.name;
               updatedData.assignedEmployeeEmail = updatedData.assignedEmployee.email;
               updatedData.assignedEmployee = updatedData.assignedEmployee.email;
-            } else if (updatedData.assignedEmployee === null) {
+            } else if (updatedData.assignedEmployee === null || updatedData.assignedEmployee === '') {
+              // Handle unassign case
               updatedData.assignedEmployeeId = '';
               updatedData.assignedEmployeeName = '';
               updatedData.assignedEmployeeEmail = '';

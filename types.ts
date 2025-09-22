@@ -161,11 +161,15 @@ export interface Payment {
   propertyIds: string[];
   serviceType: string;
   startDate: Date;
-  status: 'pending' | 'verified' | 'rejected'; // expand as needed
+  status: 'pending' | 'verified' | 'rejected';
   submittedBy: string;
   subscribedAt: Date;
   transactionScreenshot: string;
   updatedAt: Date;
+  assignedEmployee?: string;
+  assignedEmployeeId?: string;
+  assignedEmployeeName?: string;
+  assignedEmployeeEmail?: string;
 }
 
 
